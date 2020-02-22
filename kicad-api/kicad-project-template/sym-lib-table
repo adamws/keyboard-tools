@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name Switches)(type Legacy)(uri "${KIPRJMOD}/libs/MX_Alps_Hybrid/Schematic Library/MX_Alps_Hybrid.lib")(options "")(descr ""))
+)

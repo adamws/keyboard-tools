@@ -1,0 +1,747 @@
+diff --git a/node_modules/@ijprest/kle-serial/index.ts b/node_modules/@ijprest/kle-serial/index.ts
+index af8daf8..8847f5e 100755
+--- a/node_modules/@ijprest/kle-serial/index.ts
++++ b/node_modules/@ijprest/kle-serial/index.ts
+@@ -104,6 +104,7 @@ export class Serial {
+     // Initialize with defaults
+     let current: Key = new Key();
+     let kbd = new Keyboard();
++    let cluster = { x: 0, y: 0 };
+     var align = 4;
+ 
+     for (var r = 0; r < rows.length; ++r) {
+@@ -152,6 +153,16 @@ export class Serial {
+               );
+             }
+             if (item.r != null) current.rotation_angle = item.r;
++            if (item.rx != null) {
++              current.rotation_x = cluster.x = item.rx;
++              current.x = cluster.x;
++              current.y = cluster.y;
++            }
++            if (item.ry != null) {
++              current.rotation_y = cluster.y = item.ry;
++              current.x = cluster.x;
++              current.y = cluster.y;
++            }
+             if (item.rx != null) current.rotation_x = item.rx;
+             if (item.ry != null) current.rotation_y = item.ry;
+             if (item.a != null) align = item.a;
+diff --git a/node_modules/@ijprest/kle-serial/index.ts.orig b/node_modules/@ijprest/kle-serial/index.ts.orig
+new file mode 100755
+index 0000000..af8daf8
+--- /dev/null
++++ b/node_modules/@ijprest/kle-serial/index.ts.orig
+@@ -0,0 +1,211 @@
++import * as JSON5 from "json5";
++
++export class Key {
++  color: string = "#cccccc";
++  labels: string[] = [];
++  textColor: Array<string | undefined> = [];
++  textSize: Array<number | undefined> = [];
++  default: { textColor: string; textSize: number } = {
++    textColor: "#000000",
++    textSize: 3
++  };
++  x: number = 0;
++  y: number = 0;
++  width: number = 1;
++  height: number = 1;
++  x2: number = 0;
++  y2: number = 0;
++  width2: number = 1;
++  height2: number = 1;
++  rotation_x: number = 0;
++  rotation_y: number = 0;
++  rotation_angle: number = 0;
++  decal: boolean = false;
++  ghost: boolean = false;
++  stepped: boolean = false;
++  nub: false = false;
++  profile: string = "";
++  sm: string = ""; // switch mount
++  sb: string = ""; // switch brand
++  st: string = ""; // switch type
++}
++
++export class KeyboardMetadata {
++  author: string = "";
++  backcolor: string = "#eeeeee";
++  background: { name: string; style: string } | null = null;
++  name: string = "";
++  notes: string = "";
++  radii: string = "";
++  switchBrand: string = "";
++  switchMount: string = "";
++  switchType: string = "";
++}
++
++export class Keyboard {
++  meta: KeyboardMetadata = new KeyboardMetadata();
++  keys: Key[] = [];
++}
++
++export class Serial {
++  // Helper to copy an object; doesn't handle loops/circular refs, etc.
++  private static copy(o: any): any {
++    if (typeof o !== "object") {
++      return o; // primitive value
++    } else if (o instanceof Array) {
++      var result: any[] = [];
++      for (var i = 0; i < o.length; i++) {
++        result[i] = Serial.copy(o[i]);
++      }
++      return result;
++    } else {
++      var oresult: object = Object.create(Object.getPrototypeOf(o));
++      if (o.constructor) oresult.constructor();
++      for (var prop in o) {
++        if (typeof o[prop] !== "function" || !oresult[prop])
++          oresult[prop] = Serial.copy(o[prop]);
++      }
++      return oresult;
++    }
++  }
++
++  // Map from serialized label position to normalized position,
++  // depending on the alignment flags.
++  // prettier-ignore
++  private static labelMap: Array<Array<number>> = [
++    //0  1  2  3  4  5  6  7  8  9 10 11   // align flags
++    [ 0, 6, 2, 8, 9,11, 3, 5, 1, 4, 7,10], // 0 = no centering
++    [ 1, 7,-1,-1, 9,11, 4,-1,-1,-1,-1,10], // 1 = center x
++    [ 3,-1, 5,-1, 9,11,-1,-1, 4,-1,-1,10], // 2 = center y
++    [ 4,-1,-1,-1, 9,11,-1,-1,-1,-1,-1,10], // 3 = center x & y
++    [ 0, 6, 2, 8,10,-1, 3, 5, 1, 4, 7,-1], // 4 = center front (default)
++    [ 1, 7,-1,-1,10,-1, 4,-1,-1,-1,-1,-1], // 5 = center front & x
++    [ 3,-1, 5,-1,10,-1,-1,-1, 4,-1,-1,-1], // 6 = center front & y
++    [ 4,-1,-1,-1,10,-1,-1,-1,-1,-1,-1,-1], // 7 = center front & x & y
++  ];
++
++  private static reorderLabelsIn(labels, align, def: string | null = null) {
++    var ret: Array<any> = [];
++    for (var i = 0; i < labels.length; ++i) {
++      if (labels[i] && labels[i] !== def)
++        ret[Serial.labelMap[align][i]] = labels[i];
++    }
++    return ret;
++  }
++
++  private static deserializeError(msg, data?) {
++    throw "Error: " + msg + (data ? ":\n  " + JSON5.stringify(data) : "");
++  }
++
++  static deserialize(rows: Array<any>): Keyboard {
++    if (!(rows instanceof Array))
++      Serial.deserializeError("expected an array of objects");
++
++    // Initialize with defaults
++    let current: Key = new Key();
++    let kbd = new Keyboard();
++    var align = 4;
++
++    for (var r = 0; r < rows.length; ++r) {
++      if (rows[r] instanceof Array) {
++        for (var k = 0; k < rows[r].length; ++k) {
++          var item = rows[r][k];
++          if (typeof item === "string") {
++            var newKey: Key = Serial.copy(current);
++
++            // Calculate some generated values
++            newKey.width2 =
++              newKey.width2 === 0 ? current.width : current.width2;
++            newKey.height2 =
++              newKey.height2 === 0 ? current.height : current.height2;
++            newKey.labels = Serial.reorderLabelsIn(item.split("\n"), align);
++            newKey.textSize = Serial.reorderLabelsIn(newKey.textSize, align);
++
++            // Clean up the data
++            for (var i = 0; i < 12; ++i) {
++              if (!newKey.labels[i]) {
++                delete newKey.textSize[i];
++                delete newKey.textColor[i];
++              }
++              if (newKey.textSize[i] == newKey.default.textSize)
++                delete newKey.textSize[i];
++              if (newKey.textColor[i] == newKey.default.textColor)
++                delete newKey.textColor[i];
++            }
++
++            // Add the key!
++            kbd.keys.push(newKey);
++
++            // Set up for the next key
++            current.x += current.width;
++            current.width = current.height = 1;
++            current.x2 = current.y2 = current.width2 = current.height2 = 0;
++            current.nub = current.stepped = current.decal = false;
++          } else {
++            if (
++              k != 0 &&
++              (item.r != null || item.rx != null || item.ry != null)
++            ) {
++              Serial.deserializeError(
++                "rotation can only be specified on the first key in a row",
++                item
++              );
++            }
++            if (item.r != null) current.rotation_angle = item.r;
++            if (item.rx != null) current.rotation_x = item.rx;
++            if (item.ry != null) current.rotation_y = item.ry;
++            if (item.a != null) align = item.a;
++            if (item.f) {
++              current.default.textSize = item.f;
++              current.textSize = [];
++            }
++            if (item.f2)
++              for (var i = 1; i < 12; ++i) current.textSize[i] = item.f2;
++            if (item.fa) current.textSize = item.fa;
++            if (item.p) current.profile = item.p;
++            if (item.c) current.color = item.c;
++            if (item.t) {
++              var split = item.t.split("\n");
++              current.default.textColor = split[0];
++              current.textColor = Serial.reorderLabelsIn(split, align, current.default.textColor);
++            }
++            if (item.x) current.x += item.x;
++            if (item.y) current.y += item.y;
++            if (item.w) current.width = current.width2 = item.w;
++            if (item.h) current.height = current.height2 = item.h;
++            if (item.x2) current.x2 = item.x2;
++            if (item.y2) current.y2 = item.y2;
++            if (item.w2) current.width2 = item.w2;
++            if (item.h2) current.height2 = item.h2;
++            if (item.n) current.nub = item.n;
++            if (item.l) current.stepped = item.l;
++            if (item.d) current.decal = item.d;
++            if (item.g != null) current.ghost = item.g;
++            if (item.sm) current.sm = item.sm;
++            if (item.sb) current.sb = item.sb;
++            if (item.st) current.st = item.st;
++          }
++        }
++
++        // End of the row
++        current.y++;
++        current.x = current.rotation_x;
++      } else if (typeof rows[r] === "object") {
++        if (r != 0) {
++          Serial.deserializeError(
++            "keyboard metadata must the be first element",
++            rows[r]
++          );
++        }
++        for (let prop in kbd.meta) {
++          if (rows[r][prop]) kbd.meta[prop] = rows[r][prop];
++        }
++      }
++    }
++    return kbd;
++  }
++
++  static parse(json: string): Keyboard {
++    return Serial.deserialize(JSON5.parse(json));
++  }
++}
+diff --git a/node_modules/@ijprest/kle-serial/test.patch b/node_modules/@ijprest/kle-serial/test.patch
+new file mode 100644
+index 0000000..8774c13
+--- /dev/null
++++ b/node_modules/@ijprest/kle-serial/test.patch
+@@ -0,0 +1,81 @@
++From 889ccecbdb81eba40d15e9dd284aa91959d54838 Mon Sep 17 00:00:00 2001
++From: Kevin Wells <kevin.wells.nz@gmail.com>
++Date: Mon, 19 Aug 2019 21:06:46 +1200
++Subject: [PATCH 1/2] Add es5 & es6 lib contaiin Map
++
++---
++ tsconfig.json | 1 +
++ 1 file changed, 1 insertion(+)
++
++diff --git a/tsconfig.json b/tsconfig.json
++index 4fc629a..5cb8559 100644
++--- a/tsconfig.json
+++++ b/tsconfig.json
++@@ -2,6 +2,7 @@
++   "compilerOptions": {
++     "target": "es5",
++     "module": "commonjs",
+++    "lib": ["es5", "es6"],
++     "declaration": true,
++     "outDir": "./dist",
++     "strict": true,
++
++From 913a6f42f3ee03586d1cb0665f5d24ffe5bf5b68 Mon Sep 17 00:00:00 2001
++From: Kevin Wells <kevin.wells.nz@gmail.com>
++Date: Mon, 19 Aug 2019 21:17:00 +1200
++Subject: [PATCH 2/2] add x and y to center of rotation
++
++---
++ index.ts     | 11 +++++++++++
++ test/test.js |  8 ++++++++
++ 2 files changed, 19 insertions(+)
++
++diff --git a/index.ts b/index.ts
++index 260c357..813b761 100644
++--- a/index.ts
+++++ b/index.ts
++@@ -102,6 +102,7 @@ export module Serial {
++     // Initialize with defaults
++     let current: Key = new Key();
++     let kbd = new Keyboard();
+++    let cluster = { x: 0, y: 0 };
++     var align = 4;
++ 
++     for (var r = 0; r < rows.length; ++r) {
++@@ -150,6 +151,16 @@ export module Serial {
++               );
++             }
++             if (item.r != null) current.rotation_angle = item.r;
+++            if (item.rx != null) {
+++              current.rotation_x = cluster.x = item.rx;
+++              current.x = cluster.x;
+++              current.y = cluster.y;
+++            }
+++            if (item.ry != null) {
+++              current.rotation_y = cluster.y = item.ry;
+++              current.x = cluster.x;
+++              current.y = cluster.y;
+++            }
++             if (item.rx != null) current.rotation_x = item.rx;
++             if (item.ry != null) current.rotation_y = item.ry;
++             if (item.a != null) align = item.a;
++diff --git a/test/test.js b/test/test.js
++index 8abd3dc..9b806ea 100644
++--- a/test/test.js
+++++ b/test/test.js
++@@ -95,6 +95,14 @@ describe("deserialization", function() {
++       expect(result.keys[0].x2).to.not.equal(0);
++       expect(result.keys[0].y2).to.not.equal(0);
++     });
+++
+++    it("should add x and y to center of rotation", function() {
+++      var result = kbd.Serial.deserialize([[{r:10,rx:1,ry:1,y:-1.1,x:2},"E"]]);
+++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
+++      expect(result.keys).to.have.length(1);
+++      expect(result.keys[0].x).to.equal(3);
+++      expect(result.keys[0].y).to.be.closeTo(-0.1, 0.0001);
+++    });
++   });
++ 
++   describe("of key sizes", function() {
++
+diff --git a/node_modules/@ijprest/kle-serial/test/test.js b/node_modules/@ijprest/kle-serial/test/test.js
+index ca22f01..a6288d6 100755
+--- a/node_modules/@ijprest/kle-serial/test/test.js
++++ b/node_modules/@ijprest/kle-serial/test/test.js
+@@ -89,6 +89,14 @@ describe("deserialization", function() {
+       expect(result.keys[0].x2).to.not.equal(0);
+       expect(result.keys[0].y2).to.not.equal(0);
+     });
++
++    it("should add x and y to center of rotation", function() {
++      var result = kbd.Serial.deserialize([[{r:10,rx:1,ry:1,y:-1.1,x:2},"E"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].x).to.equal(3);
++      expect(result.keys[0].y).to.be.closeTo(-0.1, 0.0001);
++    });
+   });
+ 
+   describe("of key sizes", function() {
+diff --git a/node_modules/@ijprest/kle-serial/test/test.js.orig b/node_modules/@ijprest/kle-serial/test/test.js.orig
+new file mode 100755
+index 0000000..ca22f01
+--- /dev/null
++++ b/node_modules/@ijprest/kle-serial/test/test.js.orig
+@@ -0,0 +1,377 @@
++"use strict";
++
++var expect = require("chai").expect;
++var kbd = require("../dist/index");
++var Serial = kbd.Serial;
++
++describe("deserialization", function() {
++  it("should fail on non-array", function() {
++    var result = () => Serial.deserialize("test");
++    expect(result).to.throw();
++  });
++
++  it("should return empty keyboard on empty array", function() {
++    var result = Serial.deserialize([]);
++    expect(result).to.be.an.instanceOf(kbd.Keyboard);
++    expect(result.keys).to.be.empty;
++  });
++
++  describe("of metadata", function() {
++    it("should parse from first object if it exists", function() {
++      var result = Serial.deserialize([{ name: "test" }]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.meta.name).to.equal("test");
++    });
++
++    it("should throw an exception if found anywhere other than the start", function() {
++      var result = () => Serial.deserialize([[], { name: "test" }]);
++      expect(result).to.throw();
++    });
++  });
++
++  describe("of key positions", function() {
++    it("should default to (0,0)", function() {
++      var result = Serial.deserialize([["1"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].x).to.equal(0);
++      expect(result.keys[0].y).to.equal(0);
++    });
++
++    it("should increment x position by the width of the previous key", function() {
++      var result = Serial.deserialize([[{ x: 1 }, "1", "2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].x).to.equal(1);
++      expect(result.keys[1].x).to.equal(
++        result.keys[0].x + result.keys[0].width
++      );
++      expect(result.keys[1].y).to.equal(result.keys[0].y);
++    });
++
++    it("should increment y position whenever a new row starts, and reset x to zero", function() {
++      var result = Serial.deserialize([[{ y: 1 }, "1"], ["2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].y).to.equal(1);
++      expect(result.keys[1].x).to.equal(0);
++      expect(result.keys[1].y).to.equal(result.keys[0].y + 1);
++    });
++
++    it("should add x and y to current position", function() {
++      var result = Serial.deserialize([["1", { x: 1 }, "2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].x).to.equal(0);
++      expect(result.keys[1].x).to.equal(2);
++
++      var result = Serial.deserialize([["1"], [{ y: 1 }, "2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].y).to.equal(0);
++      expect(result.keys[1].y).to.equal(2);
++    });
++
++    it("should leave x2,y2 at (0,0) if not specified", function() {
++      var result = Serial.deserialize([[{ x: 1, y: 1 }, "1"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].x).to.not.equal(0);
++      expect(result.keys[0].y).to.not.equal(0);
++      expect(result.keys[0].x2).to.equal(0);
++      expect(result.keys[0].y2).to.equal(0);
++
++      var result = Serial.deserialize([[{ x: 1, y: 1, x2: 2, y2: 2 }, "1"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].x).to.not.equal(0);
++      expect(result.keys[0].y).to.not.equal(0);
++      expect(result.keys[0].x2).to.not.equal(0);
++      expect(result.keys[0].y2).to.not.equal(0);
++    });
++  });
++
++  describe("of key sizes", function() {
++    it("should reset width and height to 1", function() {
++      var result = Serial.deserialize([[{ w: 5 }, "1", "2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].width).to.equal(5);
++      expect(result.keys[1].width).to.equal(1);
++
++      var result = Serial.deserialize([[{ h: 5 }, "1", "2"]]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].height).to.equal(5);
++      expect(result.keys[1].height).to.equal(1);
++    });
++
++    it("should default width2/height2 if not specified", function() {
++      var result = Serial.deserialize([
++        [{ w: 2, h: 2 }, "1", { w: 2, h: 2, w2: 4, h2: 4 }, "2"]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].width2).to.equal(result.keys[0].width);
++      expect(result.keys[0].height2).to.equal(result.keys[0].height);
++      expect(result.keys[1].width2).to.not.equal(result.keys[1].width);
++      expect(result.keys[1].height2).to.not.equal(result.keys[1].width);
++    });
++  });
++
++  describe("of other properties", function() {
++    it("should reset stepped, homing, and decal flags to false", function() {
++      var result = Serial.deserialize([
++        [{ l: true, n: true, d: true }, "1", "2"]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].stepped).to.be.true;
++      expect(result.keys[0].nub).to.be.true;
++      expect(result.keys[0].decal).to.be.true;
++      expect(result.keys[1].stepped).to.be.false;
++      expect(result.keys[1].nub).to.be.false;
++      expect(result.keys[1].decal).to.be.false;
++    });
++  });
++
++  describe("of text color", function() {
++    it("should apply colors to all subsequent keys", function() {
++      var result = Serial.deserialize([
++        [{ c: "#ff0000", t: "#00ff00" }, "1", "2"]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(2);
++      expect(result.keys[0].color).to.equal("#ff0000");
++      expect(result.keys[1].color).to.equal("#ff0000");
++      expect(result.keys[0].default.textColor).to.equal("#00ff00");
++      expect(result.keys[1].default.textColor).to.equal("#00ff00");
++    });
++
++    it("should apply `t` to all legends", function() {
++      var result = Serial.deserialize([
++        [{ a: 0, t: "#444444" }, "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11"]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].default.textColor).to.equal("#444444");
++      expect(result.keys[0].textColor).to.have.length(0);
++    });
++
++    it("should handle generic case", function() {
++      var labels =
++        "#111111\n#222222\n#333333\n#444444\n" +
++        "#555555\n#666666\n#777777\n#888888\n" +
++        "#999999\n#aaaaaa\n#bbbbbb\n#cccccc";
++      var result = Serial.deserialize([
++        [{ a: 0, t: /*colors*/ labels }, /*labels*/ labels]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].default.textColor).to.equal("#111111");
++      for (var i = 0; i < 12; ++i) {
++        expect(
++          result.keys[0].textColor[i] || result.keys[0].default.textColor,
++          `i=${i}`
++        ).to.equal(result.keys[0].labels[i]);
++      }
++    });
++
++    it("should handle blanks", function() {
++      var labels =
++        "#111111\nXX\n#333333\n#444444\n" +
++        "XX\n#666666\nXX\n#888888\n" +
++        "#999999\n#aaaaaa\n#bbbbbb\n#cccccc";
++      var result = Serial.deserialize([
++        [{ a: 0, t: /*colors*/ labels.replace(/XX/g, "") }, /*labels*/ labels]
++      ]);
++      expect(result).to.be.an.instanceOf(kbd.Keyboard);
++      expect(result.keys).to.have.length(1);
++      expect(result.keys[0].default.textColor).to.equal("#111111");
++      for (var i = 0; i < 12; ++i) {
++        // if blank, should be same as color[0] / default
++        var color =
++          result.keys[0].textColor[i] || result.keys[0].default.textColor;
++        if (result.keys[0].labels[i] === "XX")
++          expect(color, `i=${i}`).to.equal("#111111");
++        else expect(color, `i=${i}`).to.equal(result.keys[0].labels[i]);
++      }
++    });
++  });
++
++  describe("of rotation", function() {
++    it("should not be allowed on anything but the first key in a row", function() {
++      var r1 = () => Serial.deserialize([[{ r: 45 }, "1", "2"]]);
++      expect(r1).to.not.throw();
++      var rx1 = () => Serial.deserialize([[{ rx: 45 }, "1", "2"]]);
++      expect(rx1).to.not.throw();
++      var ry1 = () => Serial.deserialize([[{ ry: 45 }, "1", "2"]]);
++      expect(ry1).to.not.throw();
++
++      var r2 = () => Serial.deserialize([["1", { r: 45 }, "2"]]);
++      expect(r2).to.throw();
++      var rx2 = () => Serial.deserialize([["1", { rx: 45 }, "2"]]);
++      expect(rx2).to.throw();
++      var ry2 = () => Serial.deserialize([["1", { ry: 45 }, "2"]]);
++      expect(ry2).to.throw();
++    });
++  });
++
++  describe("of legends", function() {
++    it("should align legend positions correctly", function() {
++      // Some history, to make sense of this:
++      // 1. Originally, you could only have top & botton legends, and they were
++      //    left-aligned. (top:0 & bottom:1)
++      // 2. Next, we added right-aligned labels (top:2 & bottom:3).
++      // 3. Next, we added front text (left:4, right:5).
++      // 4. Next, we added the alignment flags that allowed you to move the
++      //    labels (0-5) to the centered positions (via checkboxes).
++      // 5. Nobody understood the checkboxes.  They were removed in favor of
++      //    twelve separate label editors, allowing text to be placed anywhere.
++      //    This introduced labels 6 through 11.
++      // 6. The internal rendering is now Top->Bottom, Left->Right, but to keep
++      //    the file-format unchanged, the serialization code now translates
++      //    the array from the old layout to the new internal one.
++
++      // prettier-ignore
++      var expected = [
++        // top row   /**/ middle row /**/ bottom row  /**/   front
++        ["0","8","2",/**/"6","9","7",/**/"1","10","3",/**/"4","11","5"], // a=0
++        [   ,"0",   ,/**/   ,"6",   ,/**/   , "1",   ,/**/"4","11","5"], // a=1 (center horz)
++        [   ,   ,   ,/**/"0","8","2",/**/   ,    ,   ,/**/"4","11","5"], // a=2 (center vert)
++        [   ,   ,   ,/**/   ,"0",   ,/**/   ,    ,   ,/**/"4","11","5"], // a=3 (center both)
++
++        ["0","8","2",/**/"6","9","7",/**/"1","10","3",/**/   , "4",   ], // a=4 (center front)
++        [   ,"0",   ,/**/   ,"6",   ,/**/   , "1",   ,/**/   , "4",   ], // a=5 (center front+horz)
++        [   ,   ,   ,/**/"0","8","2",/**/   ,    ,   ,/**/   , "4",   ], // a=6 (center front+vert)
++        [   ,   ,   ,/**/   ,"0",   ,/**/   ,    ,   ,/**/   , "4",   ], // a=7 (center front+both)
++      ];
++
++      for (var a = 0; a <= 7; ++a) {
++        var name = `a=${a}`;
++        var result = Serial.deserialize([
++          [{ a: a }, "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11"]
++        ]);
++        expect(expected[a], name).to.not.be.undefined;
++        expect(result, name).to.be.an.instanceOf(kbd.Keyboard);
++        expect(result.keys, name).to.have.length(1);
++        expect(result.keys[0].labels, name).to.have.length(expected[a].length);
++        expect(result.keys[0].labels, name).to.have.ordered.members(
++          expected[a]
++        );
++      }
++    });
++  });
++
++  describe("of font sizes", function() {
++    it("should handle `f` at all alignments", function() {
++      for (var a = 0; a < 7; ++a) {
++        var name = `a=${a}`;
++        var result = Serial.deserialize([
++          [{ f: 1, a: a }, "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11"]
++        ]);
++        expect(result, name).to.be.an.instanceOf(kbd.Keyboard);
++        expect(result.keys, name).to.have.length(1);
++        expect(result.keys[0].default.textSize, name).to.equal(1);
++        expect(result.keys[0].textSize, name).to.have.length(0);
++      }
++    });
++
++    it("should handle `f2` at all alignments", function() {
++      for (var a = 0; a < 7; ++a) {
++        var name = `a=${a}`;
++        var result = Serial.deserialize([
++          [{ f: 1, f2: 2, a: a }, "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11"]
++        ]);
++        expect(result, name).to.be.an.instanceOf(kbd.Keyboard);
++        expect(result.keys, name).to.have.length(1);
++        // All labels should be 2, except the first one ('0')
++        for (var i = 0; i < 12; ++i) {
++          var name_i = `${name} [${i}]`;
++          if (result.keys[0].labels[i]) {
++            var expected = result.keys[0].labels[i] === "0" ? 1 : 2;
++            if (result.keys[0].labels[i] === "0") {
++              expect(result.keys[0].textSize[i], name_i).to.be.undefined;
++            } else {
++              expect(result.keys[0].textSize[i], name_i).to.equal(2);
++            }
++          } else {
++            // no text at [i]; textSize should be undefined
++            expect(result.keys[0].textSize[i], name_i).to.be.undefined;
++          }
++        }
++      }
++    });
++
++    it("should handle `fa` at all alignments", function() {
++      for (var a = 0; a < 7; ++a) {
++        var name = `a=${a}`;
++        var result = Serial.deserialize([
++          [
++            { f: 1, fa: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], a: a },
++            "2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13"
++          ]
++        ]);
++        expect(result, name).to.be.an.instanceOf(kbd.Keyboard);
++        expect(result.keys, name).to.have.length(1);
++
++        for (var i = 0; i < 12; ++i) {
++          var name_i = `${name} [${i}]`;
++          if (result.keys[0].labels[i]) {
++            expect(result.keys[0].textSize[i], name_i).to.equal(
++              parseInt(result.keys[0].labels[i])
++            );
++          }
++        }
++      }
++    });
++
++    it("should handle blanks in `fa`", function() {
++      for (var a = 0; a < 7; ++a) {
++        var name = `a=${a}`;
++        var result = Serial.deserialize([
++          [
++            { f: 1, fa: [, 2, , 4, , 6, , 8, 9, 10, , 12], a: a },
++            "x\n2\nx\n4\nx\n6\nx\n8\n9\n10\nx\n12"
++          ]
++        ]);
++        expect(result, name).to.be.an.instanceOf(kbd.Keyboard);
++        expect(result.keys, name).to.have.length(1);
++
++        for (var i = 0; i < 12; ++i) {
++          var name_i = `${name} [${i}]`;
++          if (result.keys[0].labels[i] === "x") {
++            expect(result.keys[0].textSize[i], name_i).to.be.undefined;
++          }
++        }
++      }
++    });
++  });
++
++  describe("of strings", function() {
++    it("should be lenient about quotes", function() {
++      var result1 = () =>
++        kbd.Serial.parse(`[
++        { name: "Sample", author: "Your Name" },
++        ["Q", "W", "E", "R", "T", "Y"]
++      ]`);
++
++      var result2 = () =>
++        kbd.Serial.parse(`[
++        { "name": "Sample", "author": "Your Name" },
++        ["Q", "W", "E", "R", "T", "Y"]
++      ]`);
++
++      var result3 = () =>
++        kbd.Serial.deserialize([
++          { name: "Sample", author: "Your Name" },
++          ["Q", "W", "E", "R", "T", "Y"]
++        ]);
++
++      expect(result1).to.not.throw();
++      expect(result2).to.not.throw();
++      expect(result1(), "1<>2").to.deep.equal(result2());
++      expect(result1(), "1<>3").to.deep.equal(result3());
++    });
++  });
++});
+diff --git a/node_modules/@ijprest/kle-serial/tsconfig.json b/node_modules/@ijprest/kle-serial/tsconfig.json
+index 4fc629a..5cb8559 100755
+--- a/node_modules/@ijprest/kle-serial/tsconfig.json
++++ b/node_modules/@ijprest/kle-serial/tsconfig.json
+@@ -2,6 +2,7 @@
+   "compilerOptions": {
+     "target": "es5",
+     "module": "commonjs",
++    "lib": ["es5", "es6"],
+     "declaration": true,
+     "outDir": "./dist",
+     "strict": true,
