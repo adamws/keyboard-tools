@@ -1,5 +1,5 @@
 {
-  "name": "goxygen-app",
+  "name": "keyboard-tools",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,6 +12,7 @@
     "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial",
     "axios": "~0.20.0",
     "core-js": "~3.6.5",
+    "element-plus": "^1.0.1-beta.27",
     "vue": "~3.0.0-0"
   },
   "devDependencies": {

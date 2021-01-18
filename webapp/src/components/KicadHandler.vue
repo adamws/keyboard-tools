@@ -10,7 +10,10 @@
   <p/>
   </div>
   <div class="container">
-    <input type="file" id="file" ref="file" v-on:change="uploadLayout()"/>
+    <el-button type="primary" @click="triggerUpload()">Upload layout <i class="el-icon-upload el-icon-right"></i></el-button>
+    <el-progress :stroke-width="4" :percentage="progressBarPercentage" :status="progressBarStatus" :color="'#409eff'" v-if="taskId !== null"></el-progress>
+    <a v-bind:href="apiEndpoint + '/' + taskId + '/result'" v-if="taskStatus === 'SUCCESS'">download!</a>
+    <input type="file" id="file" ref="file" v-on:change="uploadLayout()" style="display:none"/>
   </div>
 </template>
 
@@ -19,7 +22,42 @@ import axios from 'axios'
 
 export default {
   name: 'KicadHandler',
+  data() {
+    return {
+      apiEndpoint: `${process.env.VUE_APP_API_URL}/api/pcb`,
+      taskId: null,
+      taskStatus: null,
+      progressBarStatus: "",
+      progressBarPercentage: 0,
+      polling: null
+    }
+  },
   methods: {
+    triggerUpload() {
+      this.progressBarStatus = "";
+      this.progressBarPercentage = 0;
+      this.$refs.file.click();
+    },
+    getTaskStatus() {
+      axios.get(`${this.apiEndpoint}/${this.taskId}`)
+           .then(res => {
+             console.log(res.data);
+             this.taskStatus = res.data.task_status;
+             this.progressBarPercentage = res.data.task_result.percentage;
+             if (this.taskStatus !== "PENDING" && this.taskStatus !== "PROGRESS") {
+               if (this.taskStatus !== "SUCCESS") {
+                 this.progressBarPercentage = 100;
+                 this.progressBarStatus = "exception";
+               }
+               clearInterval(this.polling);
+             }
+           })
+           .catch(() => {
+             this.progressBarPercentage = 100;
+             this.progressBarStatus = "exception";
+             clearInterval(this.polling);
+           });
+    },
     uploadLayout() {
       var kle = require('@ijprest/kle-serial');
 
@@ -28,12 +66,19 @@ export default {
       let reader = new FileReader();
       reader.readAsText(file, "UTF-8");
       reader.onload = evt => {
-        var result = evt.target.result;
-        var keyboard = kle.Serial.deserialize(JSON.parse(result));
-        console.log(keyboard);
-        axios
-          .post(`${process.env.VUE_APP_API_URL}/api/pcb`, keyboard)
-          .then(response => (console.log(response.data)));
+        const result = evt.target.result;
+        const keyboard = kle.Serial.deserialize(JSON.parse(result));
+
+        axios.post(`${this.apiEndpoint}`, keyboard)
+             .then(res => {
+               if (res.status === 202) {
+                 this.taskId = res.data.task_id;
+
+                 this.polling = setInterval(() => {
+                   this.getTaskStatus();
+                 }, 1000);
+               }
+             });
       }
       reader.onerror = evt => {
         console.error(evt);

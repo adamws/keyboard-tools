@@ -1,11 +1,14 @@
 package web
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type App struct {
@@ -21,44 +24,39 @@ func NewApp(cors bool) App {
 		kicadPcbHandler = disableCors(kicadPcbHandler)
 	}
 	app.handlers["/api/pcb"] = kicadPcbHandler
+	app.handlers["/api/pcb/{task_id}"] = kicadPcbHandler
+	app.handlers["/api/pcb/{task_id}/result"] = kicadPcbHandler
 	app.handlers["/"] = http.FileServer(http.Dir("/webapp")).ServeHTTP
 	return app
 }
 
 func (a *App) Serve() error {
+	router := mux.NewRouter()
 	for path, handler := range a.handlers {
-		http.Handle(path, handler)
+		router.HandleFunc(path, handler)
+	}
+	srv := &http.Server{
+		Handler: router,
+		Addr:    "127.0.0.1:8080",
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 	log.Println("Web server is available on port 8080")
-	return http.ListenAndServe(":8080", nil)
+
+	return srv.ListenAndServe()
 }
 
 func (a *App) KicadPcbHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		return
-	}
+	url, _ := url.Parse("http://127.0.0.1:5000")
+	proxy := httputil.NewSingleHostReverseProxy(url)
 
-	keyboard_layout, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		sendErr(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	r.URL.Host = url.Host
+	r.URL.Scheme = url.Scheme
+	r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+	r.Host = url.Host
 
-	// post to kicad-api backend
-	resp, err := http.Post("http://localhost:5000/api/pcb",
-		"application/json", bytes.NewBuffer(keyboard_layout))
-
-	if err != nil {
-		sendErr(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer resp.Body.Close()
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode("OK")
-	if err != nil {
-		sendErr(w, http.StatusInternalServerError, err.Error())
-	}
+	proxy.ServeHTTP(w, r)
 }
 
 func sendErr(w http.ResponseWriter, code int, message string) {
