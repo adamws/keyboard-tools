@@ -1,26 +1,34 @@
 <template>
   <div id="app">
-    <h2 class="title">Keyboard tools</h2>
-    <div class="logo">
-      <img :src="logo" height="150" alt="logo" />
-    </div>
-    <div>
-      <KicadHandler />
-    </div>
+    <el-container>
+      <el-header>
+        <div><img :src="logo" height="15"/> Keyboard tools</div>
+      </el-header>
+      <el-main>
+        <el-menu :default-active="$route.path" :router="true" class="el-menu-demo" mode="horizontal">
+          <el-menu-item index="/" route="/">KiCad Project Generator</el-menu-item>
+          <el-menu-item index="/help" route="/help">Help</el-menu-item>
+          <el-menu-item index="/about" route="/about">About</el-menu-item>
+        </el-menu>
+        <br>
+        <router-view />
+      </el-main>
+      <el-footer>
+          <div><a href="https://github.com/adamws/keyboard-tools"><img :src="githubIcon"/></a></div>
+      </el-footer>
+    </el-container>
   </div>
 </template>
 
 <script>
-import KicadHandler from './components/KicadHandler.vue'
+//import KicadHandler from './components/KicadHandler.vue'
 
 export default {
   name: 'App',
-  components: {
-    KicadHandler
-  },
   data() {
     return {
-      logo: require('./assets/logo.png')
+      logo: require('./assets/logo.png'),
+      githubIcon: require('./assets/GitHub-Mark-32px.png'),
     }
   }
 };
@@ -28,7 +36,7 @@ export default {
 
 <style>
 body {
-  margin-top: 5%;
+  margin-top: 2%;
   padding-right: 5%;
   padding-left: 5%;
   font-size: larger;
@@ -41,15 +49,15 @@ body {
 
 @media screen and (min-width: 800px) {
   body {
-    padding-right: 15%;
-    padding-left: 15%;
+    padding-right: 10%;
+    padding-left: 10%;
   }
 }
 
 @media screen and (min-width: 1600px) {
   body {
-    padding-right: 30%;
-    padding-left: 30%;
+    padding-right: 15%;
+    padding-left: 15%;
   }
 }
 
@@ -59,11 +67,8 @@ code {
   background-color: #b3e6ff;
 }
 
-.title {
+.el-header, .el-footer {
   text-align: center;
 }
 
-.logo {
-  text-align: center;
-}
 </style>
