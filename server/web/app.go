@@ -1,40 +1,45 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
 type App struct {
-	handlers map[string]http.HandlerFunc
+	cors bool
 }
 
 func NewApp(cors bool) App {
-	app := App{
-		handlers: make(map[string]http.HandlerFunc),
-	}
-	kicadPcbHandler := app.KicadPcbHandler
-	if !cors {
-		kicadPcbHandler = disableCors(kicadPcbHandler)
-	}
-	app.handlers["/api/pcb"] = kicadPcbHandler
-	app.handlers["/api/pcb/{task_id}"] = kicadPcbHandler
-	app.handlers["/api/pcb/{task_id}/result"] = kicadPcbHandler
-	app.handlers["/"] = http.FileServer(http.Dir("/webapp")).ServeHTTP
+	app := App{cors}
 	return app
 }
 
 func (a *App) Serve() error {
 	router := mux.NewRouter()
-	for path, handler := range a.handlers {
-		router.HandleFunc(path, handler)
+
+	kicadPcbHandler := a.KicadPcbHandler
+	if !a.cors {
+		kicadPcbHandler = disableCors(kicadPcbHandler)
 	}
+
+	// TODO: when send GET to /api/pcb there is CORS issue reported by browser
+	router.HandleFunc("/api/pcb", validateKleLayout(kicadPcbHandler)).Methods("POST")
+	router.HandleFunc("/api/pcb", kicadPcbHandler).Methods("OPTIONS")
+	router.HandleFunc("/api/pcb/{task_id}", kicadPcbHandler).Methods("GET")
+	router.HandleFunc("/api/pcb/{task_id}/result", kicadPcbHandler).Methods("GET")
+
+	router.HandleFunc("/", http.FileServer(http.Dir("/webapp")).ServeHTTP)
+
 	srv := &http.Server{
 		Handler: router,
 		Addr:    "127.0.0.1:8080",
@@ -70,6 +75,45 @@ func disableCors(h http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
+		h(w, r)
+	}
+}
+
+// server side validation of uploaded json, let's not bother
+// kicad backend with invalid requests
+func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var layout kleJsonLayout
+		var unmarshalErr *json.UnmarshalTypeError
+
+		buf, _ := ioutil.ReadAll(r.Body)
+		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+
+		decoder := json.NewDecoder(rdr1)
+		decoder.DisallowUnknownFields()
+		err := decoder.Decode(&layout)
+
+		if err != nil {
+			if errors.As(err, &unmarshalErr) {
+				sendErr(w, http.StatusBadRequest, "Bad Request. Wrong Type provided for field "+unmarshalErr.Field)
+			} else {
+				sendErr(w, http.StatusBadRequest, "Bad request. "+err.Error())
+			}
+			return
+		}
+
+		// currently only via-annotated layouts are supported
+		re, _ := regexp.Compile(`^\d+\,\d+$`)
+		for _, key := range layout.Keys {
+			matrixPositionLabel := key.Labels[0]
+			if !re.Match([]byte(matrixPositionLabel)) {
+				sendErr(w, http.StatusBadRequest, "Unsupported json layout")
+				return
+			}
+		}
+
+		r.Body = rdr2
 		h(w, r)
 	}
 }
