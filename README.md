@@ -65,4 +65,9 @@ This will build the application and start.
 Access the application on http://localhost:8080.
 
 ### Credits
+- keyboard layout file serialized by [kle-serial](https://github.com/ijprest/kle-serial)
+- netlist generated with [skidl](https://github.com/xesscorp/skidl) based [kle2netlist](https://github.com/adamws/kle2netlist)
+- switch footprints by [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
+- key placement with [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer)
+- pcb preview generated with [pcbdraw](https://github.com/yaqwsx/PcbDraw)
 - project structure generated with [goxygen](https://github.com/Shpota/goxygen)
