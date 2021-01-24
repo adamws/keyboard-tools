@@ -4,6 +4,15 @@
 Features:
  - KiCAD project generator for mechanical keyboards with web interface.
 
+### Examples
+[keyboard-layout-editor](www.keyboard-layout-editor.com) | KiCad PCB
+--- | ---
+![2x2](examples/key-placement/2x2.png)<br />[json](examples/key-placement/2x2.json) | ![2x2-pcb](examples/key-placement/2x2-pcb.png)
+![3x2-sizes](examples/key-placement/3x2-sizes.png)<br />[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
+![2x3-rotations](examples/key-placement/2x3-rotations.png)<br />[json](examples/key-placement/2x3-rotations.json) | ![2x3-rotations-pcb](examples/key-placement/2x3-rotations-pcb.png)
+
+For recommended workflow see [workflow guide](examples/workflow/README.md)
+
 ## Environment setup
 
 You need to have [Go](https://golang.org/),
