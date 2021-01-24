@@ -36,6 +36,7 @@ func (a *App) Serve() error {
 	router.HandleFunc("/api/pcb", validateKleLayout(kicadPcbHandler)).Methods("POST")
 	router.HandleFunc("/api/pcb", kicadPcbHandler).Methods("OPTIONS")
 	router.HandleFunc("/api/pcb/{task_id}", kicadPcbHandler).Methods("GET")
+	router.HandleFunc("/api/pcb/{task_id}/render", kicadPcbHandler).Methods("GET")
 	router.HandleFunc("/api/pcb/{task_id}/result", kicadPcbHandler).Methods("GET")
 
 	router.HandleFunc("/", http.FileServer(http.Dir("/webapp")).ServeHTTP)

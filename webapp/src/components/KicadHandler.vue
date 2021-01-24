@@ -7,7 +7,13 @@
     <el-button type="primary" @click="triggerUpload()">Upload layout <i class="el-icon-upload el-icon-right"></i></el-button>
     <input type="file" id="file" ref="file" v-on:change="uploadLayout()" style="display:none"/>
     <el-progress :stroke-width="4" :percentage="progressBarPercentage" :status="progressBarStatus" :color="'#409eff'" v-if="taskId !== null"></el-progress>
-    <a v-bind:href="getResultUrl()" v-if="taskStatus === 'SUCCESS'">download!</a>
+  </div>
+  <br>
+  <div>
+    <img style="width: 100%; height: 100%" :src="`${svgData}`" v-if="svgData !== ''">
+    <a id="download" v-bind:href="getResultUrl()" v-if="taskStatus === 'SUCCESS'">
+      <el-button type="success">Download project</el-button>
+    </a>
   </div>
 </template>
 
@@ -23,13 +29,16 @@ export default {
       taskStatus: null,
       progressBarStatus: "",
       progressBarPercentage: 0,
-      polling: null
+      polling: null,
+      svgData: ""
     }
   },
   methods: {
     triggerUpload() {
+      this.taskStatus = null;
       this.progressBarStatus = "";
       this.progressBarPercentage = 0;
+      this.svgData = "";
       this.$refs.file.click();
     },
     getTaskStatus() {
@@ -39,7 +48,15 @@ export default {
              this.taskStatus = res.data.task_status;
              this.progressBarPercentage = res.data.task_result.percentage;
              if (this.taskStatus !== "PENDING" && this.taskStatus !== "PROGRESS") {
-               if (this.taskStatus !== "SUCCESS") {
+               if (this.taskStatus === "SUCCESS") {
+                 axios.get(`${this.apiEndpoint}/${this.taskId}/render`)
+                      .then(resp => {
+                        this.svgData = `data:image/svg+xml;base64,${resp.data}`
+                      })
+                      .catch(() => {
+                        console.log("something went wrong");
+                      });
+               } else {
                  this.progressBarPercentage = 100;
                  this.progressBarStatus = "exception";
                }

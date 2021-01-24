@@ -14,7 +14,9 @@ RUN add-apt-repository --yes ppa:kicad/kicad-5.1-releases \
   && apt-get update \
   && apt-get install -y kicad
 
-RUN pip3 install flask celery redis kinet2pcb minio git+https://github.com/adamws/kle2netlist
+RUN pip3 install flask celery redis kinet2pcb minio pcbdraw git+https://github.com/adamws/kle2netlist
+
+RUN apt-get install -y libmagickwand-dev
 
 RUN useradd -ms /bin/bash user
 USER user

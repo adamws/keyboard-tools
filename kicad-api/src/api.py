@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 
@@ -29,6 +30,26 @@ def get_status(task_id):
     return jsonify(result), 200
 
 
+@app.route("/api/pcb/<task_id>/render", methods=["GET"])
+def get_render(task_id):
+    # although this works, perhaps it would be better to redirrect
+    # GET directly to minio?
+    client = Minio(
+        "minio:9000",
+        access_key="minio_dev",
+        secret_key="minio_dev_secret",
+        secure=False,
+    )
+    memory_file = io.BytesIO()
+    data = client.get_object(task_id, "front.svg")
+    for d in data.stream(32 * 1024):
+        memory_file.write(d)
+    memory_file.seek(0)
+
+    return base64.b64encode(memory_file.read()).decode()
+    # return send_file(memory_file, mimetype='image/svg+xml')
+
+
 @app.route("/api/pcb/<task_id>/result", methods=["GET"])
 def get_result(task_id):
     # although this works, perhaps it would be better to redirrect
@@ -40,7 +61,7 @@ def get_result(task_id):
         secure=False,
     )
     memory_file = io.BytesIO()
-    data = client.get_object("kicad-projects", f"{task_id}.zip")
+    data = client.get_object(task_id, f"{task_id}.zip")
     for d in data.stream(32 * 1024):
         memory_file.write(d)
     memory_file.seek(0)

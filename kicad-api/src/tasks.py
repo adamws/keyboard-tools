@@ -1,6 +1,8 @@
 import errno
+import importlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -27,7 +29,8 @@ def __update_percentage(percentage):
 
 
 def __generate_kicad_project(task_id, layout):
-    from kle2netlist.skidl import kle2netlist
+    import pcbnew
+    import wx
 
     __update_percentage(0)
 
@@ -36,7 +39,7 @@ def __generate_kicad_project(task_id, layout):
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
 
     # 1. prepare project
-    __update_percentage(20)
+    __update_percentage(10)
     shutil.copytree(TEMPLATE_NAME, project_full_path)
 
     for f in Path(project_full_path).rglob(f"{TEMPLATE_NAME}*"):
@@ -49,17 +52,37 @@ def __generate_kicad_project(task_id, layout):
     netlist_path = f"{project_full_path}/{project_name}.net"
 
     # this should be read from sym_lib_table:
-    project_libs = [f"{project_full_path}/libs/MX_Alps_Hybrid/Schematic Library"]
+    project_libs = [
+        f"{project_full_path}/libs/MX_Alps_Hybrid/Schematic Library",
+        "/usr/share/kicad/library",
+    ]
 
     log_path = str(Path(task_id).joinpath("logs").absolute())
     os.mkdir(log_path)
 
     # 2. generate netlist
-    __update_percentage(30)
-    kle2netlist(layout, netlist_path, additional_search_path=project_libs)
+    __update_percentage(20)
+    # kle2netlist(layout, netlist_path, additional_search_path=project_libs)
+    kle2netlist_log = open("kle2netlist.log", "w")
+    p = subprocess.Popen(
+        [
+            "kle2netlist",
+            "--layout",
+            layout_file,
+            "--output",
+            netlist_path,
+            "-l",
+            project_libs[0],
+            "-l",
+            project_libs[1],
+        ],
+        stdout=kle2netlist_log,
+        stderr=subprocess.STDOUT,
+    )
+    p.communicate()
 
     # 3. create .kicad_pcb from netlist
-    __update_percentage(40)
+    __update_percentage(30)
     env = os.environ.copy()
     env["KIPRJMOD"] = project_full_path
     kicad_pcb_log = open("kinet2pcb.log", "w")
@@ -74,7 +97,7 @@ def __generate_kicad_project(task_id, layout):
     p.communicate()
 
     # 4. arrange elements on pcb
-    __update_percentage(50)
+    __update_percentage(40)
     keyautoplace_log = open("keyautoplace.log", "w")
     p = subprocess.Popen(
         ["python3", "keyautoplace.py", "-l", layout_file, "-b", pcb_path],
@@ -84,18 +107,64 @@ def __generate_kicad_project(task_id, layout):
     )
     p.communicate()
 
-    # 5. move log data
+    # 5. add edge cuts
+    __update_percentage(50)
+    board = pcbnew.LoadBoard(pcb_path)
+    positions = [
+        module.GetPosition()
+        for module in board.GetModules()
+        if re.match(r"^MX\d+$", module.GetReference())
+    ]
+    xvals = [position.x for position in positions]
+    yvals = [position.y for position in positions]
+    xmin = min(xvals) - pcbnew.FromMM(9)
+    xmax = max(xvals) + pcbnew.FromMM(9)
+    ymin = min(yvals) - pcbnew.FromMM(9)
+    ymax = max(yvals) + pcbnew.FromMM(9)
+    corners = [
+        pcbnew.wxPoint(xmin, ymin),
+        pcbnew.wxPoint(xmax, ymin),
+        pcbnew.wxPoint(xmax, ymax),
+        pcbnew.wxPoint(xmin, ymax),
+    ]
+    for i in range(len(corners)):
+        start = corners[i]
+        end = corners[(i + 1) % len(corners)]
+        segment = pcbnew.DRAWSEGMENT(board)
+        segment.SetLayer(pcbnew.Edge_Cuts)
+        segment.SetStart(start)
+        segment.SetEnd(end)
+        board.Add(segment)
+
+    pcbnew.Refresh()
+    pcbnew.SaveBoard(pcb_path, board)
+
+    # 6. render
     __update_percentage(60)
-    shutil.move("tasks_lib_sklib.py", log_path)
+    pcbdraw_log = open("pcbdraw.log", "w")
+    p = subprocess.Popen(
+        ["pcbdraw", "--filter", '""', pcb_path, "front.svg"],
+        env=env,
+        stdout=pcbdraw_log,
+        stderr=subprocess.STDOUT,
+    )
+    p.communicate()
+
+    # 7. move log data
+    __update_percentage(70)
+    shutil.move("skidl_lib_sklib.py", log_path)
+    shutil.move("kle2netlist.log", log_path)
     shutil.move("kinet2pcb.log", log_path)
     shutil.move("keyautoplace.log", log_path)
+    shutil.move("pcbdraw.log", log_path)
+    shutil.move("front.svg", log_path)
 
-    # 6. pack result
-    __update_percentage(70)
+    # 8. pack result
+    __update_percentage(80)
     shutil.make_archive(task_id, "zip", task_id)
 
-    # 7. upload to storage
-    __update_percentage(80)
+    # 9. upload to storage
+    __update_percentage(90)
     client = Minio(
         "minio:9000",
         access_key="minio_dev",
@@ -103,12 +172,13 @@ def __generate_kicad_project(task_id, layout):
         secure=False,
     )
 
-    bucket_name = "kicad-projects"
+    bucket_name = task_id
     found = client.bucket_exists(bucket_name)
     if not found:
         client.make_bucket(bucket_name)
 
     client.fput_object(bucket_name, f"{task_id}.zip", f"/home/user/{task_id}.zip")
+    client.fput_object(bucket_name, "front.svg", f"{log_path}/front.svg")
 
 
 @celery.task(name="generate_kicad_project")
@@ -117,6 +187,9 @@ def generate_kicad_project(layout):
     try:
         __generate_kicad_project(task_id, layout)
     except Exception as err:
+        # TODO: add better, permament logging, also find out how to
+        # send custom metadata to caller
+        print(err)
         generate_kicad_project.update_state(state=states.FAILURE)
         raise Ignore()
     finally:
