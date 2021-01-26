@@ -113,7 +113,7 @@ def __generate_kicad_project(task_id, layout):
     positions = [
         module.GetPosition()
         for module in board.GetModules()
-        if re.match(r"^MX\d+$", module.GetReference())
+        if re.match(r"^SW\d+$", module.GetReference())
     ]
     xvals = [position.x for position in positions]
     yvals = [position.y for position in positions]
