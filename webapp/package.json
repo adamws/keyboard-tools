@@ -9,17 +9,17 @@
     "postinstall": "patch-package && cd node_modules/@ijprest/kle-serial && npm run build"
   },
   "dependencies": {
-    "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial",
-    "axios": "~0.20.0",
+    "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial.git",
+    "axios": ">=0.21.1",
     "core-js": "~3.6.5",
     "element-plus": "^1.0.1-beta.27",
     "vue": "~3.0.0-0",
     "vue-router": "^4.0.3"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-eslint": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
+    "@vue/cli-plugin-babel": "^4.5.11",
+    "@vue/cli-plugin-eslint": "^4.5.11",
+    "@vue/cli-service": "^4.5.11",
     "@vue/compiler-sfc": "~3.0.0-0",
     "babel-eslint": "~10.1.0",
     "eslint": "~6.7.2",
