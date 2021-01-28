@@ -1,7 +1,9 @@
 FROM node:12.18.3-alpine3.12 AS JS_BUILD
+RUN apk add --no-cache git
 COPY webapp /webapp
 WORKDIR webapp
-RUN npm install && npm run build
+
+RUN npm install --unsafe-perm && npm run build
 
 FROM golang:1.15.1-alpine3.12 AS GO_BUILD
 COPY server /server
