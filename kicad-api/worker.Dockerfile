@@ -8,15 +8,15 @@ RUN apt-get update \
       curl \
       git \
       unzip \
-      python3-pip
+      python3-pip \
+      libmagickwand-dev
 
 RUN add-apt-repository --yes ppa:kicad/kicad-5.1-releases \
   && apt-get update \
   && apt-get install -y kicad
 
-RUN pip3 install flask celery redis kinet2pcb minio pcbdraw git+https://github.com/adamws/kle2netlist
-
-RUN apt-get install -y libmagickwand-dev
+COPY worker-requirements.txt .
+RUN pip3 install -r worker-requirements.txt
 
 RUN useradd -ms /bin/bash user
 USER user

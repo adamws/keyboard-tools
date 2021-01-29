@@ -16,11 +16,18 @@ import (
 )
 
 type App struct {
-	cors bool
+	production bool
+	kicadUrl *url.URL
 }
 
-func NewApp(cors bool) App {
-	app := App{cors}
+func NewApp(production bool) App {
+	urlString := "http://localhost:5000"
+	if production {
+		urlString = "http://api:5000"
+	}
+	url, _ := url.Parse(urlString)
+
+	app := App{production, url}
 	return app
 }
 
@@ -28,7 +35,9 @@ func (a *App) Serve() error {
 	router := mux.NewRouter()
 
 	kicadPcbHandler := a.KicadPcbHandler
-	if !a.cors {
+
+	// disable cors for local development
+	if !a.production {
 		kicadPcbHandler = disableCors(kicadPcbHandler)
 	}
 
@@ -58,13 +67,12 @@ func (a *App) Serve() error {
 }
 
 func (a *App) KicadPcbHandler(w http.ResponseWriter, r *http.Request) {
-	url, _ := url.Parse("http://0.0.0.0:5000")
-	proxy := httputil.NewSingleHostReverseProxy(url)
+	proxy := httputil.NewSingleHostReverseProxy(a.kicadUrl)
 
-	r.URL.Host = url.Host
-	r.URL.Scheme = url.Scheme
+	r.URL.Host = a.kicadUrl.Host
+	r.URL.Scheme = a.kicadUrl.Scheme
 	r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
-	r.Host = url.Host
+	r.Host = a.kicadUrl.Host
 
 	proxy.ServeHTTP(w, r)
 }

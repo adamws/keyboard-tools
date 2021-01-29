@@ -1,9 +1,56 @@
-version: "3.8"
+version: "3.7"
 services:
+
   app:
     build: .
-    container_name: app
     ports:
-      - 8080:8080
+      - 80:8080
     environment:
       profile: prod
+    depends_on:
+      - api
+      - worker
+
+  api:
+    build:
+      context: ./kicad-api
+      dockerfile: api.Dockerfile
+    command: python3 api.py
+    volumes:
+      - ./kicad-api/src:/usr/src
+    env_file:
+      - production.env
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: ./kicad-api
+      dockerfile: worker.Dockerfile
+    command: celery -A src.tasks.celery worker -l INFO
+    volumes:
+      - ./kicad-api/src:/home/user/src
+    env_file:
+      - production.env
+    depends_on:
+      - api
+      - redis
+      - minio
+
+  redis:
+    image: redis:6-alpine
+
+  minio:
+    image: minio/minio
+    volumes:
+      - minio_data:/data
+    env_file:
+      - production.env
+    environment:
+      PYTHONUNBUFFERED: 1
+    command: server /data
+
+
+volumes:
+  minio_data:
+

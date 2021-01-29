@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 
 from celery.result import AsyncResult
 from flask import Flask, jsonify, request, send_file
@@ -10,6 +11,15 @@ from tasks import generate_kicad_project
 
 app = Flask(__name__)
 
+minio_access_key = os.environ.get("MINIO_ACCESS_KEY", "minio_dev")
+minio_secret_key = os.environ.get("MINIO_SECRET_KEY", "minio_dev_secret")
+
+minio_client = Minio(
+    "minio:9000",
+    access_key=minio_access_key,
+    secret_key=minio_secret_key,
+    secure=False,
+)
 
 @app.route("/api/pcb", methods=["POST"])
 def pcb():
@@ -32,36 +42,21 @@ def get_status(task_id):
 
 @app.route("/api/pcb/<task_id>/render", methods=["GET"])
 def get_render(task_id):
-    # although this works, perhaps it would be better to redirrect
-    # GET directly to minio?
-    client = Minio(
-        "minio:9000",
-        access_key="minio_dev",
-        secret_key="minio_dev_secret",
-        secure=False,
-    )
     memory_file = io.BytesIO()
-    data = client.get_object(task_id, "front.svg")
+    data = minio_client.get_object("kicad-projects", f"{task_id}/front.svg")
     for d in data.stream(32 * 1024):
         memory_file.write(d)
     memory_file.seek(0)
 
     return base64.b64encode(memory_file.read()).decode()
-    # return send_file(memory_file, mimetype='image/svg+xml')
 
 
 @app.route("/api/pcb/<task_id>/result", methods=["GET"])
 def get_result(task_id):
     # although this works, perhaps it would be better to redirrect
     # GET directly to minio?
-    client = Minio(
-        "minio:9000",
-        access_key="minio_dev",
-        secret_key="minio_dev_secret",
-        secure=False,
-    )
     memory_file = io.BytesIO()
-    data = client.get_object(task_id, f"{task_id}.zip")
+    data = minio_client.get_object("kicad-projects", f"{task_id}/{task_id}.zip")
     for d in data.stream(32 * 1024):
         memory_file.write(d)
     memory_file.seek(0)

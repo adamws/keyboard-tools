@@ -59,19 +59,14 @@ npm start
 ```
 The application will be available on http://localhost:3000.
 
-## Start in production mode (not working yet)
+## Start in production mode
 
-From `kicad-api` directory run:
-```sh
-docker-compose up
-```
-
-Next, from project root perform:
+From project root perform:
 ```sh
 docker-compose up
 ```
 This will build the application and start.
-Access the application on http://localhost:8080.
+Access the application on http://localhost
 
 ### Credits
 - keyboard layout file serialized by [kle-serial](https://github.com/ijprest/kle-serial)

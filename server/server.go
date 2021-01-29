@@ -8,8 +8,8 @@ import (
 
 func main() {
 	// CORS is enabled only in prod profile
-	cors := os.Getenv("profile") == "prod"
-	app := web.NewApp(cors)
+	prod := os.Getenv("profile") == "prod"
+	app := web.NewApp(prod)
 	log.Fatal("Error", app.Serve())
 }
 

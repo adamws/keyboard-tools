@@ -10,7 +10,10 @@ import time
 from celery import Celery, states
 from celery.exceptions import Ignore
 from minio import Minio
+from minio.commonconfig import ENABLED
 from minio.error import S3Error
+from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
+
 from pathlib import Path
 
 celery = Celery(__name__)
@@ -18,6 +21,9 @@ celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", "redis://localhost:
 celery.conf.result_backend = os.environ.get(
     "CELERY_RESULT_BACKEND", "redis://localhost:6379"
 )
+
+minio_access_key = os.environ.get("MINIO_ACCESS_KEY", "minio_dev")
+minio_secret_key = os.environ.get("MINIO_SECRET_KEY", "minio_dev_secret")
 
 TEMPLATE_NAME = "kicad-project-template"
 
@@ -28,9 +34,35 @@ def __update_percentage(percentage):
     )
 
 
+def __upload_to_storage(task_id, log_path):
+    client = Minio(
+        "minio:9000",
+        access_key=minio_access_key,
+        secret_key=minio_secret_key,
+        secure=False,
+    )
+
+    bucket_name = "kicad-projects"
+    found = client.bucket_exists(bucket_name)
+    if not found:
+        client.make_bucket(bucket_name)
+        config = LifecycleConfig(
+            [
+                Rule(
+                    ENABLED,
+                    rule_id="expire",
+                    expiration=Expiration(days=1),
+                ),
+            ],
+        )
+        client.set_bucket_lifecycle("kicad-projects", config)
+
+    client.fput_object(bucket_name, f"{task_id}/{task_id}.zip", f"/home/user/{task_id}.zip")
+    client.fput_object(bucket_name, f"{task_id}/front.svg", f"{log_path}/front.svg")
+
+
 def __generate_kicad_project(task_id, layout):
     import pcbnew
-    import wx
 
     __update_percentage(0)
 
@@ -62,7 +94,6 @@ def __generate_kicad_project(task_id, layout):
 
     # 2. generate netlist
     __update_percentage(20)
-    # kle2netlist(layout, netlist_path, additional_search_path=project_libs)
     kle2netlist_log = open("kle2netlist.log", "w")
     p = subprocess.Popen(
         [
@@ -165,20 +196,7 @@ def __generate_kicad_project(task_id, layout):
 
     # 9. upload to storage
     __update_percentage(90)
-    client = Minio(
-        "minio:9000",
-        access_key="minio_dev",
-        secret_key="minio_dev_secret",
-        secure=False,
-    )
-
-    bucket_name = task_id
-    found = client.bucket_exists(bucket_name)
-    if not found:
-        client.make_bucket(bucket_name)
-
-    client.fput_object(bucket_name, f"{task_id}.zip", f"/home/user/{task_id}.zip")
-    client.fput_object(bucket_name, "front.svg", f"{log_path}/front.svg")
+    __upload_to_storage(task_id, log_path)
 
 
 @celery.task(name="generate_kicad_project")

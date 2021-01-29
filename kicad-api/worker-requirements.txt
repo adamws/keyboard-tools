@@ -1,0 +1,7 @@
+celery==5.0.5
+flask==1.1.2
+kinet2pcb==0.1.1
+minio==7.0.1
+PcbDraw==0.6.1
+redis==3.5.3
+git+git://github.com/adamws/kle2netlist@master
