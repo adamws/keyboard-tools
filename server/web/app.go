@@ -41,9 +41,13 @@ func (a *App) Serve() error {
 
 	router.HandleFunc("/", http.FileServer(http.Dir("/webapp")).ServeHTTP)
 
+	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", http.FileServer(http.Dir("/webapp/css"))))
+	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", http.FileServer(http.Dir("/webapp/js"))))
+	router.PathPrefix("/fonts/").Handler(http.StripPrefix("/fonts/", http.FileServer(http.Dir("/webapp/fonts"))))
+
 	srv := &http.Server{
 		Handler: router,
-		Addr:    "127.0.0.1:8080",
+		Addr:    "0.0.0.0:8080",
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -54,7 +58,7 @@ func (a *App) Serve() error {
 }
 
 func (a *App) KicadPcbHandler(w http.ResponseWriter, r *http.Request) {
-	url, _ := url.Parse("http://127.0.0.1:5000")
+	url, _ := url.Parse("http://0.0.0.0:5000")
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
 	r.URL.Host = url.Host
