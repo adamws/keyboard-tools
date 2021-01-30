@@ -1,20 +1,16 @@
-import errno
-import importlib
 import json
 import os
 import re
 import shutil
 import subprocess
-import time
+
+from pathlib import Path
 
 from celery import Celery, states
 from celery.exceptions import Ignore
 from minio import Minio
 from minio.commonconfig import ENABLED
-from minio.error import S3Error
 from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
-
-from pathlib import Path
 
 celery = Celery(__name__)
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379")
@@ -57,7 +53,9 @@ def __upload_to_storage(task_id, log_path):
         )
         client.set_bucket_lifecycle("kicad-projects", config)
 
-    client.fput_object(bucket_name, f"{task_id}/{task_id}.zip", f"/home/user/{task_id}.zip")
+    client.fput_object(
+        bucket_name, f"{task_id}/{task_id}.zip", f"/home/user/{task_id}.zip"
+    )
     client.fput_object(bucket_name, f"{task_id}/front.svg", f"{log_path}/front.svg")
 
 
@@ -209,7 +207,7 @@ def generate_kicad_project(layout):
         # send custom metadata to caller
         print(err)
         generate_kicad_project.update_state(state=states.FAILURE)
-        raise Ignore()
+        raise Ignore() from err
     finally:
         shutil.rmtree(task_id, ignore_errors=True)
         zipfile = f"{task_id}.zip"
