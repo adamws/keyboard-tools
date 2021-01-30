@@ -22,13 +22,15 @@ RUN useradd -ms /bin/bash user
 USER user
 WORKDIR /home/user
 
-ADD --chown=user:user kicad-project-template kicad-project-template
-
 RUN curl -LJO https://github.com/ai03-2725/MX_Alps_Hybrid/archive/master.zip \
   && unzip MX_Alps_Hybrid-master.zip \
-  && mkdir -p kicad-project-template/libs \
-  && mv MX_Alps_Hybrid-master kicad-project-template/libs/MX_Alps_Hybrid \
-  && rm -rf MX_Alps_Hybrid-master.zip
+  && mkdir switch-libs \
+  && mv MX_Alps_Hybrid-master switch-libs/MX_Alps_Hybrid \
+  && rm -rf MX_Alps_Hybrid-master.zip \
+  && curl -LJO https://github.com/perigoso/Switch_Keyboard/archive/main.zip \
+  && unzip Switch_Keyboard-main.zip \
+  && mv Switch_Keyboard-main switch-libs/Switch_Keyboard \
+  && rm -rf Switch_Keyboard-main.zip
 
 ENV KICAD_SYMBOL_DIR=/usr/share/kicad/library
 ENV KISYSMOD=/usr/share/kicad/modules

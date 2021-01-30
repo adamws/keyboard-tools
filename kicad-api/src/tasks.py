@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import re
@@ -8,6 +9,7 @@ from pathlib import Path
 
 from celery import Celery, states
 from celery.exceptions import Ignore
+from jinja2 import Template
 from minio import Minio
 from minio.commonconfig import ENABLED
 from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
@@ -21,13 +23,75 @@ celery.conf.result_backend = os.environ.get(
 minio_access_key = os.environ.get("MINIO_ACCESS_KEY", "minio_dev")
 minio_secret_key = os.environ.get("MINIO_SECRET_KEY", "minio_dev_secret")
 
-TEMPLATE_NAME = "kicad-project-template"
-
 
 def __update_percentage(percentage):
     generate_kicad_project.update_state(
         state="PROGRESS", meta={"percentage": percentage}
     )
+
+
+def __prepare_project(project_full_path, project_name, switch_library):
+    __update_percentage(10)
+
+    Path(project_full_path).mkdir(parents=True, exist_ok=True)
+
+    tm = Template(
+        "(sym_lib_table\n{% for sym_lib in sym_libs -%}{{ sym_lib }}\n{% endfor %})"
+    )
+    sym_lib_table = tm.render(sym_libs=[])
+    with open(f"{project_full_path}/sym-lib-table", "w") as f:
+        f.write(sym_lib_table)
+
+    tm = Template(
+        "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
+    )
+    if switch_library == "perigoso/Switch_Keyboard":
+        fp_lib_table = tm.render(
+            fp_libs=[
+                '(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
+                '(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
+            ]
+        )
+        shutil.copytree(
+            "switch-libs/Switch_Keyboard", f"{project_full_path}/libs/Switch_Keyboard"
+        )
+    else:
+        fp_lib_table = tm.render(
+            fp_libs=[
+                '(lib (name MX_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Only.pretty)(options "")(descr ""))'
+            ]
+        )
+        shutil.copytree(
+            "switch-libs/MX_Alps_Hybrid", f"{project_full_path}/libs/MX_Alps_Hybrid"
+        )
+
+    with open(f"{project_full_path}/fp-lib-table", "w") as f:
+        f.write(fp_lib_table)
+
+    with open(f"{project_full_path}/{project_name}.kicad_pcb", "w") as f:
+        f.write('(kicad_pcb (version 4) (host kicad "dummy file") )')
+
+    with open(f"{project_full_path}/{project_name}.pro", "w") as f:
+        timestamp = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        f.write(f"update={timestamp}\n")
+        f.write("version=1\n")
+        f.write("last_client=kicad\n")
+        f.write("[general]\n")
+        f.write("version=1\n")
+        f.write("RootSch=\n")
+        f.write("BoardNm=\n")
+        f.write("[pcbnew]\n")
+        f.write("version=1\n")
+        f.write("LastNetListRead=\n")
+        f.write("UseCmpFile=1\n")
+        f.write("[cvpcb]\n")
+        f.write("version=1\n")
+        f.write("NetIExt=net\n")
+        f.write("[eeschema]\n")
+        f.write("version=1\n")
+        f.write("LibDir=\n")
+        f.write("[keyboard-tools]\n")
+        f.write("url=keyboard-tools.xyz\n")
 
 
 def __upload_to_storage(task_id, log_path):
@@ -59,33 +123,27 @@ def __upload_to_storage(task_id, log_path):
     client.fput_object(bucket_name, f"{task_id}/front.svg", f"{log_path}/front.svg")
 
 
-def __generate_kicad_project(task_id, layout):
+def __generate_kicad_project(task_id, task_request):
     import pcbnew
 
     __update_percentage(0)
 
+    layout = task_request["layout"]
+    settings = task_request["settings"]
+
+    switch_library = settings["switchLibrary"]
+
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
+    netlist_path = f"{project_full_path}/{project_name}.net"
 
     # 1. prepare project
-    __update_percentage(10)
-    shutil.copytree(TEMPLATE_NAME, project_full_path)
-
-    for f in Path(project_full_path).rglob(f"{TEMPLATE_NAME}*"):
-        f.rename(f"{f.parent}/{project_name}{f.suffix}")
+    __prepare_project(project_full_path, project_name, switch_library)
 
     layout_file = f"{project_full_path}/{project_name}_layout.json"
     with open(layout_file, "w") as out:
         out.write(json.dumps(layout, indent=2))
-
-    netlist_path = f"{project_full_path}/{project_name}.net"
-
-    # this should be read from sym_lib_table:
-    project_libs = [
-        f"{project_full_path}/libs/MX_Alps_Hybrid/Schematic Library",
-        "/usr/share/kicad/library",
-    ]
 
     log_path = str(Path(task_id).joinpath("logs").absolute())
     os.mkdir(log_path)
@@ -93,6 +151,7 @@ def __generate_kicad_project(task_id, layout):
     # 2. generate netlist
     __update_percentage(20)
     kle2netlist_log = open("kle2netlist.log", "w")
+    project_libs = "/usr/share/kicad/library"
     p = subprocess.Popen(
         [
             "kle2netlist",
@@ -100,15 +159,17 @@ def __generate_kicad_project(task_id, layout):
             layout_file,
             "--output",
             netlist_path,
+            "--switch-library",
+            switch_library,
             "-l",
-            project_libs[0],
-            "-l",
-            project_libs[1],
+            project_libs,
         ],
         stdout=kle2netlist_log,
         stderr=subprocess.STDOUT,
     )
     p.communicate()
+    if p.returncode != 0:
+        raise Exception("Generate netlist failed")
 
     # 3. create .kicad_pcb from netlist
     __update_percentage(30)
@@ -124,49 +185,67 @@ def __generate_kicad_project(task_id, layout):
         stderr=subprocess.STDOUT,
     )
     p.communicate()
+    if p.returncode != 0:
+        raise Exception("Generate .kicad_pcb from netlist failed")
 
     # 4. arrange elements on pcb
     __update_percentage(40)
     keyautoplace_log = open("keyautoplace.log", "w")
+    keyautoplace_args = [
+        "python3",
+        "keyautoplace.py",
+        "-l",
+        layout_file,
+        "-b",
+        pcb_path,
+    ]
+    if settings["routing"] == "Full":
+        keyautoplace_args.append("--route")
+
     p = subprocess.Popen(
-        ["python3", "keyautoplace.py", "-l", layout_file, "-b", pcb_path],
+        keyautoplace_args,
         env=env,
         stdout=keyautoplace_log,
         stderr=subprocess.STDOUT,
     )
     p.communicate()
+    if p.returncode != 0:
+        raise Exception("Switch placement failed")
 
     # 5. add edge cuts
     __update_percentage(50)
-    board = pcbnew.LoadBoard(pcb_path)
-    positions = [
-        module.GetPosition()
-        for module in board.GetModules()
-        if re.match(r"^SW\d+$", module.GetReference())
-    ]
-    xvals = [position.x for position in positions]
-    yvals = [position.y for position in positions]
-    xmin = min(xvals) - pcbnew.FromMM(9)
-    xmax = max(xvals) + pcbnew.FromMM(9)
-    ymin = min(yvals) - pcbnew.FromMM(9)
-    ymax = max(yvals) + pcbnew.FromMM(9)
-    corners = [
-        pcbnew.wxPoint(xmin, ymin),
-        pcbnew.wxPoint(xmax, ymin),
-        pcbnew.wxPoint(xmax, ymax),
-        pcbnew.wxPoint(xmin, ymax),
-    ]
-    for i in range(len(corners)):
-        start = corners[i]
-        end = corners[(i + 1) % len(corners)]
-        segment = pcbnew.DRAWSEGMENT(board)
-        segment.SetLayer(pcbnew.Edge_Cuts)
-        segment.SetStart(start)
-        segment.SetEnd(end)
-        board.Add(segment)
+    try:
+        board = pcbnew.LoadBoard(pcb_path)
+        positions = [
+            module.GetPosition()
+            for module in board.GetModules()
+            if re.match(r"^SW\d+$", module.GetReference())
+        ]
+        xvals = [position.x for position in positions]
+        yvals = [position.y for position in positions]
+        xmin = min(xvals) - pcbnew.FromMM(9)
+        xmax = max(xvals) + pcbnew.FromMM(9)
+        ymin = min(yvals) - pcbnew.FromMM(9)
+        ymax = max(yvals) + pcbnew.FromMM(9)
+        corners = [
+            pcbnew.wxPoint(xmin, ymin),
+            pcbnew.wxPoint(xmax, ymin),
+            pcbnew.wxPoint(xmax, ymax),
+            pcbnew.wxPoint(xmin, ymax),
+        ]
+        for i in range(len(corners)):
+            start = corners[i]
+            end = corners[(i + 1) % len(corners)]
+            segment = pcbnew.DRAWSEGMENT(board)
+            segment.SetLayer(pcbnew.Edge_Cuts)
+            segment.SetStart(start)
+            segment.SetEnd(end)
+            board.Add(segment)
 
-    pcbnew.Refresh()
-    pcbnew.SaveBoard(pcb_path, board)
+        pcbnew.Refresh()
+        pcbnew.SaveBoard(pcb_path, board)
+    except Exception as err:
+        raise Exception("Adding egde cuts failed") from err
 
     # 6. render
     __update_percentage(60)
@@ -178,6 +257,8 @@ def __generate_kicad_project(task_id, layout):
         stderr=subprocess.STDOUT,
     )
     p.communicate()
+    if p.returncode != 0:
+        raise Exception("Preview render failed")
 
     # 7. move log data
     __update_percentage(70)
@@ -198,10 +279,10 @@ def __generate_kicad_project(task_id, layout):
 
 
 @celery.task(name="generate_kicad_project")
-def generate_kicad_project(layout):
+def generate_kicad_project(task_request):
     task_id = generate_kicad_project.request.id
     try:
-        __generate_kicad_project(task_id, layout)
+        __generate_kicad_project(task_id, task_request)
     except Exception as err:
         # TODO: add better, permament logging, also find out how to
         # send custom metadata to caller

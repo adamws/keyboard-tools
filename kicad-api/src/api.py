@@ -25,8 +25,8 @@ minio_client = Minio(
 
 @app.route("/api/pcb", methods=["POST"])
 def pcb():
-    layout = json.loads(request.data)
-    task = generate_kicad_project.delay(layout)
+    task_request = json.loads(request.data)
+    task = generate_kicad_project.delay(task_request)
     return jsonify({"task_id": task.id}), 202
 
 

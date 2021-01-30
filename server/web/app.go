@@ -17,7 +17,7 @@ import (
 
 type App struct {
 	production bool
-	kicadUrl *url.URL
+	kicadUrl   *url.URL
 }
 
 func NewApp(production bool) App {
@@ -92,11 +92,21 @@ func disableCors(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+type kleJsonRequest struct {
+	Layout   kleJsonLayout `json:"layout"`
+	Settings pcbSettings   `json:"settings"`
+}
+
+type pcbSettings struct {
+	SwitchLibrary   string `json:"switchLibrary"`
+	Routing         string `json:"routing"`
+}
+
 // server side validation of uploaded json, let's not bother
 // kicad backend with invalid requests
 func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var layout kleJsonLayout
+		var request kleJsonRequest
 		var unmarshalErr *json.UnmarshalTypeError
 
 		buf, _ := ioutil.ReadAll(r.Body)
@@ -105,7 +115,7 @@ func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
 
 		decoder := json.NewDecoder(rdr1)
 		decoder.DisallowUnknownFields()
-		err := decoder.Decode(&layout)
+		err := decoder.Decode(&request)
 
 		if err != nil {
 			if errors.As(err, &unmarshalErr) {
@@ -118,7 +128,7 @@ func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
 
 		// currently only via-annotated layouts are supported
 		re, _ := regexp.Compile(`^\d+\,\d+$`)
-		for _, key := range layout.Keys {
+		for _, key := range request.Layout.Keys {
 			matrixPositionLabel := key.Labels[0]
 			if !re.Match([]byte(matrixPositionLabel)) {
 				sendErr(w, http.StatusBadRequest, "Unsupported json layout")

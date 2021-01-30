@@ -21,8 +21,6 @@
 </template>
 
 <script>
-//import KicadHandler from './components/KicadHandler.vue'
-
 export default {
   name: 'App',
   data() {

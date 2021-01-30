@@ -1,3 +1,0 @@
-(fp_lib_table
-  (lib (name MX_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Only.pretty)(options "")(descr ""))
-)
