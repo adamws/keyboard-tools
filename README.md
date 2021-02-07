@@ -2,14 +2,17 @@
 
 ## About
 Features:
- - KiCAD project generator for mechanical keyboards with web interface.
+ - KiCad project generator for mechanical keyboards with web interface
+    - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid) and [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
+    - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
+    - supports basic pre-routing (remember to always run DRC, in some cases, especially around stabilizers mounting holes, routing might be invalid)
 
 ### Examples
-[keyboard-layout-editor](www.keyboard-layout-editor.com) | KiCad PCB
+[keyboard-layout-editor](www.keyboard-layout-editor.com) | KiCad PCB (with routing enabled)
 --- | ---
-![2x2](examples/key-placement/2x2.png)<br />[json](examples/key-placement/2x2.json) | ![2x2-pcb](examples/key-placement/2x2-pcb.png)
-![3x2-sizes](examples/key-placement/3x2-sizes.png)<br />[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
-![2x3-rotations](examples/key-placement/2x3-rotations.png)<br />[json](examples/key-placement/2x3-rotations.json) | ![2x3-rotations-pcb](examples/key-placement/2x3-rotations-pcb.png)
+![2x2](examples/key-placement/2x2.png)<br/>[json](examples/key-placement/2x2.json) | ![2x2-pcb](examples/key-placement/2x2-pcb.png)
+![3x2-sizes](examples/key-placement/3x2-sizes.png)<br/>[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
+![2x3-rotations](examples/key-placement/2x3-rotations.png)<br/>[json](examples/key-placement/2x3-rotations.json) | ![2x3-rotations-pcb](examples/key-placement/2x3-rotations-pcb.png)<br/>Note: Routing for rotated switches may be incomplete
 
 For recommended workflow see [workflow guide](examples/workflow/README.md)
 
