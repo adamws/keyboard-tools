@@ -8,7 +8,7 @@ Features:
     - supports basic pre-routing (remember to always run DRC, in some cases, especially around stabilizers mounting holes, routing might be invalid)
 
 ### Examples
-[keyboard-layout-editor](www.keyboard-layout-editor.com) | KiCad PCB (with routing enabled)
+[keyboard-layout-editor](http://www.keyboard-layout-editor.com) | KiCad PCB (with routing enabled)
 --- | ---
 ![2x2](examples/key-placement/2x2.png)<br/>[json](examples/key-placement/2x2.json) | ![2x2-pcb](examples/key-placement/2x2-pcb.png)
 ![3x2-sizes](examples/key-placement/3x2-sizes.png)<br/>[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
