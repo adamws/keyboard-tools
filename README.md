@@ -7,6 +7,7 @@ Features:
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
   and [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
+- three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
 - supports basic pre-routing
 
@@ -15,6 +16,11 @@ Limitations:
 - routing algorithm is currently very simplified. It will not work correctly for
   certain switch rotation angles. Also there is no automatic DRC rule check,
   hence is some situations, tracks might be too close to pads or mounting holes.
+- routing algorithm doesn't work for Alps & MX/Alps Hybrid when [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
+  in use, see this [issue](https://github.com/perigoso/Switch_Keyboard/issues/4)
+
+**Disclaimer:** this project is under active development.
+Website should be running latest master revision but it may be unstable and buggy.
 
 ### Examples
 
