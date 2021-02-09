@@ -99,6 +99,7 @@ type kleJsonRequest struct {
 
 type pcbSettings struct {
 	SwitchLibrary   string `json:"switchLibrary"`
+	SwitchFootprint string `json:"switchFootprint"`
 	Routing         string `json:"routing"`
 }
 

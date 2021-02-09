@@ -1,20 +1,28 @@
 <template>
-  <div>
-    <span>Switch library:</span>
-    <span>
+  <el-row>
+    <el-col class="setting-name" :span="6">Switch library:</el-col>
+    <el-col :span="18">
       <el-radio-group v-model="switchLibrary">
         <el-radio v-for="option in switchLibraryOptions" :label="option" :key="option">{{option}}</el-radio>
       </el-radio-group>
-    </span>
-  </div>
-  <div>
-    <span>Switch matrix routing:</span>
-    <span>
+    </el-col>
+  </el-row>
+  <el-row>
+    <el-col class="setting-name" :span="6">Switch footprint:</el-col>
+    <el-col :span="18">
+      <el-radio-group v-model="switchFootprint">
+        <el-radio v-for="option in switchFootprintOptions" :label="option" :key="option">{{option}}</el-radio>
+      </el-radio-group>
+    </el-col>
+  </el-row>
+  <el-row>
+    <el-col class="setting-name" :span="6">Switch matrix routing:</el-col>
+    <el-col :span="18">
       <el-radio-group v-model="routingOption">
         <el-radio v-for="option in routingOptions" :label="option" :key="option">{{option}}</el-radio>
       </el-radio-group>
-    </span>
-  </div>
+    </el-col>
+  </el-row>
 </template>
 
 <script>
@@ -22,10 +30,12 @@ export default {
   name: 'PcbSettings',
   data() {
     return {
-      switchLibraryOptions: ["ai03-2725/MX_Alps_Hybrid", "perigoso/Switch_Keyboard"],
+      switchLibraryOptions: ["perigoso/Switch_Keyboard", "ai03-2725/MX_Alps_Hybrid"],
+      switchFootprintOptions: ["MX", "Alps", "MX/Alps Hybrid"],
       routingOptions: ["Disabled", "Full"],
 
       switchLibrary: "perigoso/Switch_Keyboard",
+      switchFootprint: "MX",
       routingOption: "Disabled",
     }
   },
@@ -34,6 +44,7 @@ export default {
     getSettings() {
       this.$emit("settings", {
         "switchLibrary": this.switchLibrary,
+        "switchFootprint": this.switchFootprint,
         "routing": this.routingOption,
         }
       );
@@ -43,7 +54,13 @@ export default {
 </script>
 
 <style scoped>
-span {
-  margin: 5px;
+.el-row {
+  margin-bottom: 4px;
+}
+.el-col {
+  border-radius: 4px;
+}
+.setting-name {
+  cursor: default;
 }
 </style>

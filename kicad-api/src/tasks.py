@@ -50,6 +50,8 @@ def __prepare_project(project_full_path, project_name, switch_library):
         fp_lib_table = tm.render(
             fp_libs=[
                 '(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
+                '(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
+                '(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
                 '(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
             ]
         )
@@ -60,6 +62,8 @@ def __prepare_project(project_full_path, project_name, switch_library):
         fp_lib_table = tm.render(
             fp_libs=[
                 '(lib (name MX_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Only.pretty)(options "")(descr ""))'
+                '(lib (name Alps_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/Alps_Only.pretty)(options "")(descr ""))'
+                '(lib (name MX_Alps_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
             ]
         )
         shutil.copytree(
@@ -133,6 +137,7 @@ def __generate_kicad_project(task_id, task_request):
     settings = task_request["settings"]
 
     switch_library = settings["switchLibrary"]
+    switch_footprint = settings["switchFootprint"]
 
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
@@ -162,6 +167,8 @@ def __generate_kicad_project(task_id, task_request):
             netlist_path,
             "--switch-library",
             switch_library,
+            "--switch-footprint",
+            switch_footprint,
             "-l",
             project_libs,
         ],
