@@ -52,7 +52,6 @@ export default {
     getTaskStatus() {
       axios.get(`${this.apiEndpoint}/${this.taskId}`)
            .then(res => {
-             console.log(res.data);
              this.taskStatus = res.data.task_status;
              this.progressBarPercentage = res.data.task_result.percentage;
              if (this.taskStatus !== "PENDING" && this.taskStatus !== "PROGRESS") {
@@ -67,6 +66,11 @@ export default {
                } else {
                  this.progressBarPercentage = 100;
                  this.progressBarStatus = "exception";
+
+                 this.$alert(res.data.task_result, "Failed", {
+                   confirmButtonText: "OK",
+                   type: "error",
+                 });
                }
                clearInterval(this.polling);
              }

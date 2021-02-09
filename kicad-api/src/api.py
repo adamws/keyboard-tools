@@ -34,10 +34,14 @@ def pcb():
 def get_status(task_id):
     task_result = AsyncResult(task_id)
 
+    metadata = task_result.result
+    if isinstance(metadata, Exception):
+        metadata = str(metadata)
+
     result = {
         "task_id": task_id,
         "task_status": task_result.status,
-        "task_result": task_result.result,
+        "task_result": metadata,
     }
     return jsonify(result), 200
 

@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import traceback
 
 from pathlib import Path
 
@@ -284,10 +285,13 @@ def generate_kicad_project(task_request):
     try:
         __generate_kicad_project(task_id, task_request)
     except Exception as err:
-        # TODO: add better, permament logging, also find out how to
-        # send custom metadata to caller
-        print(err)
-        generate_kicad_project.update_state(state=states.FAILURE)
+        generate_kicad_project.update_state(
+            state=states.FAILURE,
+            meta={
+                "exc_type": type(err).__name__,
+                "exc_message": traceback.format_exc(limit=1),
+            },
+        )
         raise Ignore() from err
     finally:
         shutil.rmtree(task_id, ignore_errors=True)
