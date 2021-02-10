@@ -39,8 +39,13 @@ export default {
   },
   methods: {
     handlePcbSettings(params) {
-      console.log(params);
       this.pcbSettings = params;
+    },
+    showFailAlert(message) {
+      this.$alert(message, "Failed", {
+        confirmButtonText: "OK",
+        type: "error",
+      });
     },
     triggerUpload() {
       this.taskStatus = null;
@@ -49,6 +54,19 @@ export default {
       this.svgData = "";
       this.$refs.file.click();
     },
+    setProgressBarFailState() {
+      this.progressBarPercentage = 100;
+      this.progressBarStatus = "exception";
+    },
+    getTaskRender() {
+      axios.get(`${this.apiEndpoint}/${this.taskId}/render`)
+           .then(resp => {
+             this.svgData = `data:image/svg+xml;base64,${resp.data}`;
+           })
+           .catch(() => {
+             this.showFailAlert("Preview render not available");
+           });
+    },
     getTaskStatus() {
       axios.get(`${this.apiEndpoint}/${this.taskId}`)
            .then(res => {
@@ -56,28 +74,17 @@ export default {
              this.progressBarPercentage = res.data.task_result.percentage;
              if (this.taskStatus !== "PENDING" && this.taskStatus !== "PROGRESS") {
                if (this.taskStatus === "SUCCESS") {
-                 axios.get(`${this.apiEndpoint}/${this.taskId}/render`)
-                      .then(resp => {
-                        this.svgData = `data:image/svg+xml;base64,${resp.data}`
-                      })
-                      .catch(() => {
-                        console.log("something went wrong");
-                      });
+                 this.getTaskRender();
                } else {
-                 this.progressBarPercentage = 100;
-                 this.progressBarStatus = "exception";
-
-                 this.$alert(res.data.task_result, "Failed", {
-                   confirmButtonText: "OK",
-                   type: "error",
-                 });
+                 this.setProgressBarFailState();
+                 this.showFailAlert(res.data.task_result);
                }
                clearInterval(this.polling);
              }
            })
            .catch(() => {
-             this.progressBarPercentage = 100;
-             this.progressBarStatus = "exception";
+             this.setProgressBarFailState();
+             this.showFailAlert("Unexpected exception when fetching task status");
              clearInterval(this.polling);
            });
     },
@@ -105,7 +112,12 @@ export default {
                  this.polling = setInterval(() => {
                    this.getTaskStatus();
                  }, 1000);
+               } else {
+                 this.showFailAlert("Request rejected");
                }
+             })
+             .catch(() => {
+               this.showFailAlert("KiCad backend not reachable");
              });
       }
       reader.onerror = evt => {
