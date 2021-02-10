@@ -32,6 +32,12 @@ Website should be running latest master revision but it may be unstable and bugg
 
 For recommended workflow see [workflow guide](examples/workflow/README.md)
 
+## KLE converter
+
+- use [kle-serial](https://github.com/ijprest/kle-serial) via web interface at [keyboard-tools.xyz/kle-converter](http://keyboard-tools.xyz/kle-converter)
+- includes [patch](https://github.com/ijprest/kle-serial/pull/1) which fix
+  rotated key issue
+
 ## For developers
 
 ### Environment setup

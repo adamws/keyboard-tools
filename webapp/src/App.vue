@@ -1,12 +1,13 @@
 <template>
   <div id="app">
     <el-container>
-      <el-header>
+      <el-header style="height: 20px;">
         <div><img :src="logo" height="15"/> Keyboard tools</div>
       </el-header>
       <el-main>
         <el-menu :default-active="$route.path" :router="true" class="el-menu-demo" mode="horizontal">
           <el-menu-item index="/" route="/">KiCad Project Generator</el-menu-item>
+          <el-menu-item index="/kle-converter" route="/kle-converter">KLE converter</el-menu-item>
           <el-menu-item index="/help" route="/help">Help</el-menu-item>
           <el-menu-item index="/about" route="/about">About</el-menu-item>
         </el-menu>
@@ -37,7 +38,6 @@ body {
   margin-top: 2%;
   padding-right: 5%;
   padding-left: 5%;
-  font-size: larger;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -47,15 +47,15 @@ body {
 
 @media screen and (min-width: 800px) {
   body {
-    padding-right: 10%;
-    padding-left: 10%;
+    padding-right: 5%;
+    padding-left: 5%;
   }
 }
 
 @media screen and (min-width: 1600px) {
   body {
-    padding-right: 15%;
-    padding-left: 15%;
+    padding-right: 10%;
+    padding-left: 10%;
   }
 }
 
