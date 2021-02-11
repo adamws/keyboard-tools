@@ -7,7 +7,7 @@
   <br>
   <div>
     <el-button type="primary" @click="triggerUpload()">Upload layout <i class="el-icon-upload el-icon-right"></i></el-button>
-    <input type="file" id="file" ref="file" v-on:change="uploadLayout()" style="display:none"/>
+    <input type="file" id="file" ref="file" accept=".json" v-on:change="uploadLayout()" style="display:none"/>
     <el-progress :stroke-width="4" :percentage="progressBarPercentage" :status="progressBarStatus" :color="'#409eff'" v-if="taskId !== null"></el-progress>
   </div>
   <br>
@@ -42,6 +42,7 @@ export default {
       this.pcbSettings = params;
     },
     showFailAlert(message) {
+      this.setProgressBarFailState();
       this.$alert(message, "Failed", {
         confirmButtonText: "OK",
         type: "error",
@@ -76,14 +77,12 @@ export default {
                if (this.taskStatus === "SUCCESS") {
                  this.getTaskRender();
                } else {
-                 this.setProgressBarFailState();
                  this.showFailAlert(res.data.task_result);
                }
                clearInterval(this.polling);
              }
            })
            .catch(() => {
-             this.setProgressBarFailState();
              this.showFailAlert("Unexpected exception when fetching task status");
              clearInterval(this.polling);
            });
@@ -99,8 +98,19 @@ export default {
       let reader = new FileReader();
       reader.readAsText(file, "UTF-8");
       reader.onload = evt => {
-        const result = evt.target.result;
-        const keyboard = kle.Serial.deserialize(JSON.parse(result));
+        if (file.type !== "application/json") {
+          this.showFailAlert("Unsupported file type");
+          return;
+        }
+
+        let keyboard;
+        try {
+          const result = evt.target.result;
+          keyboard = kle.Serial.deserialize(JSON.parse(result));
+        } catch (error) {
+          this.showFailAlert(error.toString());
+          return;
+        }
 
         this.$refs.pcbSettings.getSettings();
 
