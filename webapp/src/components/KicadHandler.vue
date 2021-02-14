@@ -126,8 +126,17 @@ export default {
                  this.showFailAlert("Request rejected");
                }
              })
-             .catch(() => {
-               this.showFailAlert("KiCad backend not reachable");
+             .catch((error) => {
+               if (error.response) {
+                 const data = error.response.data;
+                 if (data.error) {
+                   this.showFailAlert(data.error);
+                 } else {
+                   this.showFailAlert("Unexpected error");
+                 }
+               } else {
+                 this.showFailAlert("Unexpected error");
+               }
              });
       }
       reader.onerror = evt => {

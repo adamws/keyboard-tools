@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -34,19 +36,24 @@ func NewApp(production bool) App {
 func (a *App) Serve() error {
 	router := mux.NewRouter()
 
-	kicadPcbHandler := a.KicadPcbHandler
+	// there are two types of handlers for KiCad API,
+	// 1) proxy handler which does not check or modify data - is used for most endpoints
+	kicadProxyPcbHandler := a.KicadProxyPcbHandler
+	// 2) request handler which checks POSTed data and can modify it in some scenarios
+	//    before passing it further - is used for POST /api/pcb endpoint
+	kicadPostPcbHandler := processKleLayout(kicadProxyPcbHandler)
 
 	// disable cors for local development
 	if !a.production {
-		kicadPcbHandler = disableCors(kicadPcbHandler)
+		kicadProxyPcbHandler = disableCors(kicadProxyPcbHandler)
+		kicadPostPcbHandler = disableCors(kicadPostPcbHandler)
 	}
 
-	// TODO: when send GET to /api/pcb there is CORS issue reported by browser
-	router.HandleFunc("/api/pcb", validateKleLayout(kicadPcbHandler)).Methods("POST")
-	router.HandleFunc("/api/pcb", kicadPcbHandler).Methods("OPTIONS")
-	router.HandleFunc("/api/pcb/{task_id}", kicadPcbHandler).Methods("GET")
-	router.HandleFunc("/api/pcb/{task_id}/render", kicadPcbHandler).Methods("GET")
-	router.HandleFunc("/api/pcb/{task_id}/result", kicadPcbHandler).Methods("GET")
+	router.HandleFunc("/api/pcb", kicadPostPcbHandler).Methods("POST")
+	router.HandleFunc("/api/pcb", kicadProxyPcbHandler).Methods("OPTIONS")
+	router.HandleFunc("/api/pcb/{task_id}", kicadProxyPcbHandler).Methods("GET")
+	router.HandleFunc("/api/pcb/{task_id}/render", kicadProxyPcbHandler).Methods("GET")
+	router.HandleFunc("/api/pcb/{task_id}/result", kicadProxyPcbHandler).Methods("GET")
 
 	router.HandleFunc("/", http.FileServer(http.Dir("/webapp")).ServeHTTP)
 
@@ -66,7 +73,7 @@ func (a *App) Serve() error {
 	return srv.ListenAndServe()
 }
 
-func (a *App) KicadPcbHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) KicadProxyPcbHandler(w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(a.kicadUrl)
 
 	r.URL.Host = a.kicadUrl.Host
@@ -98,14 +105,57 @@ type kleJsonRequest struct {
 }
 
 type pcbSettings struct {
+	MatrixOption    string `json:"matrixOption"`
 	SwitchLibrary   string `json:"switchLibrary"`
 	SwitchFootprint string `json:"switchFootprint"`
 	Routing         string `json:"routing"`
 }
 
-// server side validation of uploaded json, let's not bother
-// kicad backend with invalid requests
-func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
+// checks if all keys contains valid row-column assignment
+func areKeysAnnotated(keys []kleKey) bool {
+	re, _ := regexp.Compile(`^\d+\,\d+$`)
+	for _, key := range keys {
+		matrixPositionLabel := ""
+		if len(key.Labels) != 0 {
+			matrixPositionLabel = key.Labels[0]
+		}
+		if !re.Match([]byte(matrixPositionLabel)) {
+			return false
+		}
+	}
+	return true
+}
+
+func getKeyCenter(key kleKey) (float64, float64) {
+	x := key.X + (key.Width / 2)
+	y := key.Y + (key.Height / 2)
+
+	rotOrginX := key.RotationX
+	rotOrginY := key.RotationY
+	angle := -1 * key.RotationAngle
+	angleRad := angle * math.Pi / 180
+
+	x = x - rotOrginX
+	y = y - rotOrginY
+
+	x = (x * math.Cos(angleRad)) - (y * math.Sin(angleRad))
+	y = (y * math.Cos(angleRad)) + (x * math.Sin(angleRad))
+
+	x = x + rotOrginX
+	y = y + rotOrginY
+
+	return x, y
+}
+
+func annotateKeys(keys []kleKey) {
+	for i, key := range keys {
+		x, y := getKeyCenter(key)
+		key.Labels = []string{fmt.Sprintf("%d,%d", int(y), int(x))}
+		keys[i] = key
+	}
+}
+
+func processKleLayout(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request kleJsonRequest
 		var unmarshalErr *json.UnmarshalTypeError
@@ -127,17 +177,23 @@ func validateKleLayout(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// currently only via-annotated layouts are supported
-		re, _ := regexp.Compile(`^\d+\,\d+$`)
-		for _, key := range request.Layout.Keys {
-			matrixPositionLabel := key.Labels[0]
-			if !re.Match([]byte(matrixPositionLabel)) {
+		if request.Settings.MatrixOption == "Predefined" {
+			if !areKeysAnnotated(request.Layout.Keys) {
 				sendErr(w, http.StatusBadRequest, "Unsupported json layout")
 				return
 			}
+			// rewrite without modification
+			r.Body = rdr2
+		} else {
+			annotateKeys(request.Layout.Keys)
+			newBodyBytes := new(bytes.Buffer)
+			json.NewEncoder(newBodyBytes).Encode(request)
+
+			// use modified request
+			r.Body = ioutil.NopCloser(newBodyBytes)
+			r.ContentLength = int64(newBodyBytes.Len())
 		}
 
-		r.Body = rdr2
 		h(w, r)
 	}
 }
