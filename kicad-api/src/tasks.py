@@ -231,10 +231,10 @@ def __generate_kicad_project(task_id, task_request):
         ]
         xvals = [position.x for position in positions]
         yvals = [position.y for position in positions]
-        xmin = min(xvals) - pcbnew.FromMM(9)
-        xmax = max(xvals) + pcbnew.FromMM(9)
-        ymin = min(yvals) - pcbnew.FromMM(9)
-        ymax = max(yvals) + pcbnew.FromMM(9)
+        xmin = min(xvals) - pcbnew.FromMM(12)
+        xmax = max(xvals) + pcbnew.FromMM(12)
+        ymin = min(yvals) - pcbnew.FromMM(12)
+        ymax = max(yvals) + pcbnew.FromMM(12)
         corners = [
             pcbnew.wxPoint(xmin, ymin),
             pcbnew.wxPoint(xmax, ymin),
