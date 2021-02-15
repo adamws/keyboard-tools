@@ -1,0 +1,19 @@
+{
+  "name": "keyboard-tools",
+  "version": "0.0.1",
+  "description": "Tools for mechanical keyboard design",
+  "main": "index.js",
+  "authors": {
+    "name": "adamws",
+    "email": ""
+  },
+  "repository": "https://github.com/adamws/keyboard-tools",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}
