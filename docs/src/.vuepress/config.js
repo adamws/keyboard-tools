@@ -4,7 +4,7 @@ module.exports = {
   /**
    * Ref：https://v1.vuepress.vuejs.org/config/#title
    */
-  title: 'Vuepress Docs Boilerplate',
+  title: 'Keyboard Tools',
   /**
    * Ref：https://v1.vuepress.vuejs.org/config/#description
    */
@@ -34,26 +34,20 @@ module.exports = {
     lastUpdated: false,
     nav: [
       {
-        text: 'Guide',
-        link: '/guide/',
-      },
-      {
-        text: 'Config',
-        link: '/config/'
-      },
-      {
-        text: 'VuePress',
-        link: 'https://v1.vuepress.vuejs.org'
+        text: 'Github',
+        link: 'https://github.com/adamws/keyboard-tools'
       }
     ],
     sidebar: {
-      '/guide/': [
+      '/kicad-project-generator/': [
         {
-          title: 'Guide',
+          title: 'KiCad Project Generator',
           collapsable: false,
           children: [
             '',
-            'using-vue',
+            'features',
+            'guide',
+            'examples',
           ]
         }
       ],

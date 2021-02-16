@@ -30,8 +30,6 @@ Website should be running latest master revision but it may be unstable and bugg
 ![3x2-sizes](examples/key-placement/3x2-sizes.png)<br/>[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
 ![2x3-rotations](examples/key-placement/2x3-rotations.png)<br/>[json](examples/key-placement/2x3-rotations.json) | ![2x3-rotations-pcb](examples/key-placement/2x3-rotations-pcb.png)<br/>Note: Routing for rotated switches may be incomplete
 
-For recommended workflow see [workflow guide](examples/workflow/README.md)
-
 ## KLE converter
 
 - use [kle-serial](https://github.com/ijprest/kle-serial) via web interface at [keyboard-tools.xyz/kle-converter](http://keyboard-tools.xyz/kle-converter)
