@@ -21,6 +21,7 @@ module.exports = {
     ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black' }]
   ],
 
+  base: "/keyboard-tools/",
   /**
    * Theme configuration, here is the default theme configuration for VuePress.
    *
