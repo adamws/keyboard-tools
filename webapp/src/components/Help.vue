@@ -1,12 +1,12 @@
 <template>
   <div>
-    This is help component
+    Project documentation is hosted at <a href="https://adamws.github.io/keyboard-tools">https://adamws.github.io/keyboard-tools</a>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'About'
+  name: 'Help'
 };
 </script>
 

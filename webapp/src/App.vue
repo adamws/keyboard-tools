@@ -69,4 +69,8 @@ code {
   text-align: center;
 }
 
+a {
+  text-decoration: none;
+}
+
 </style>
