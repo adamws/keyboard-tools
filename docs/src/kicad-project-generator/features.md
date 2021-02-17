@@ -58,8 +58,3 @@ collision with stabilizer mounting holes and routing for rotated switches.
 
 Remember to always run KiCad DRC checks.
 :::
-
-::: danger
-Router does not work for perigoso/Switch_Keyboard when MX/Alps Hybrid
-footprint used.
-:::

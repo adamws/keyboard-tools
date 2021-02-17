@@ -6,29 +6,15 @@ Features:
 
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
-  and [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
+  and [Switch_Keyboard](https://github.com/perigoso/keyswitch-kicad-library)
 - three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
 - supports basic pre-routing
 
-Limitations:
-
-- routing algorithm is currently very simplified. It will not work correctly for
-  certain switch rotation angles. Also there is no automatic DRC rule check,
-  hence is some situations, tracks might be too close to pads or mounting holes.
-- routing algorithm doesn't work for Alps & MX/Alps Hybrid when [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
-  in use, see this [issue](https://github.com/perigoso/Switch_Keyboard/issues/4)
+Detailed documentation available here: [keyboard-tools/kicad-project-generator](https://adamws.github.io/keyboard-tools/kicad-project-generator)
 
 **Disclaimer:** this project is under active development.
 Website should be running latest master revision but it may be unstable and buggy.
-
-### Examples
-
-[keyboard-layout-editor](http://www.keyboard-layout-editor.com) | KiCad PCB (with routing enabled)
---- | ---
-![2x2](examples/key-placement/2x2.png)<br/>[json](examples/key-placement/2x2.json) | ![2x2-pcb](examples/key-placement/2x2-pcb.png)
-![3x2-sizes](examples/key-placement/3x2-sizes.png)<br/>[json](examples/key-placement/3x2-sizes.json) | ![3x2-pcb](examples/key-placement/3x2-sizes-pcb.png)
-![2x3-rotations](examples/key-placement/2x3-rotations.png)<br/>[json](examples/key-placement/2x3-rotations.json) | ![2x3-rotations-pcb](examples/key-placement/2x3-rotations-pcb.png)<br/>Note: Routing for rotated switches may be incomplete
 
 ## KLE converter
 

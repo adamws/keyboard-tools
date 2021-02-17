@@ -47,8 +47,8 @@ module.exports = {
           children: [
             '',
             'features',
-            'guide',
             'examples',
+            'guide',
           ]
         }
       ],

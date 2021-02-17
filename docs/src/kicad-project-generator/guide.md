@@ -6,7 +6,7 @@ User needs to design microcontroller circuit and route everything together.
 In this guide I'm using `Default 60%` preset from
 [keyboard-layout-editor](www.keyboard-layout-editor.com).
 
-![pcb](./assets/layout60.png)
+![pcb](./assets/guide/layout60.png)
 
 Recommended workflow contains following steps:
 
@@ -23,12 +23,12 @@ Recommended workflow contains following steps:
   If everything succeed, after few seconds, PCB preview and
   **Download project** button (4) should appear:
 
-  ![frontend](./assets/frontend.png)
+  ![frontend](./assets/guide/frontend.png)
 
 - Download and unzip project. Open project located in `keyboard` directory.
   It should contain following structure:
 
-  ![kicad-project](./assets/kicad-project.png)
+  ![kicad-project](./assets/guide/kicad-project.png)
 
   ::: tip
   Generated project has entire selected switch library bundled in.
@@ -38,33 +38,37 @@ Recommended workflow contains following steps:
   `keyboard.kicad_pcb` file should have switches and diodes placed according
   to provided layout like this:
 
-  ![pcb](./assets/pcb.png)
+  ![pcb](./assets/guide/pcb.png)
 
   - Run DRC check. In this example, there is one invalid track.
 
-    ![pcb](./assets/drc-result.png)
+    ![pcb](./assets/guide/drc-result.png)
 
     In order to fix it, simple remove faulty track segment and route it manually,
     for example:
 
-    ![pcb](./assets/drc-fix.png)
+    ![pcb](./assets/guide/drc-fix.png)
+
+    Also check if DRC report any unconnected items. For some layouts,
+    current router implementation does not attempt to connect items (mainly diodes
+    with different `Y` coordinate).
 
     ::: tip
     Always run DRC check on imported projects. Implemented router does not guarantee
-    that rules are met, for details see [this](features#routing)).
+    that rules are met, for details see [this](features#routing).
     :::
 
 - From this point onward, PCB needs to be finished by user.
   - Open `Schematic Layout Editor`, because schematic is not generated there
     will be following prompt:
 
-    ![prompt](./assets/prompt.png)
+    ![prompt](./assets/guide/prompt.png)
 
     Select **yes**.
 
   - Design microcontroller circuit, for example:
 
-    ![uc-circuit](./assets/uc-circuit.png)
+    ![uc-circuit](./assets/guide/uc-circuit.png)
 
     For connecting key matix rows/collumns use `Global Labels` with following
     name convention: `ROW{number}`/`COL{number}`
@@ -79,7 +83,7 @@ Recommended workflow contains following steps:
 
   - Open `keyboard.kicad_pcb` and load microcontroller netlist.
 
-    ![load-netlist](./assets/load-netlist.png)
+    ![load-netlist](./assets/guide/load-netlist.png)
 
     Click **Upadate PCB** and **Close**. New components will appear on PCB.
 
