@@ -22,15 +22,18 @@ RUN useradd -ms /bin/bash user
 USER user
 WORKDIR /home/user
 
-RUN curl -LJO https://github.com/ai03-2725/MX_Alps_Hybrid/archive/master.zip \
-  && unzip MX_Alps_Hybrid-master.zip \
-  && mkdir switch-libs \
-  && mv MX_Alps_Hybrid-master switch-libs/MX_Alps_Hybrid \
-  && rm -rf MX_Alps_Hybrid-master.zip \
-  && curl -LJO https://github.com/perigoso/Switch_Keyboard/archive/main.zip \
-  && unzip Switch_Keyboard-main.zip \
-  && mv Switch_Keyboard-main switch-libs/Switch_Keyboard \
-  && rm -rf Switch_Keyboard-main.zip
+ARG AI03_LIB=MX_Alps_Hybrid
+ARG PERIGOSO_LIB=keyswitch-kicad-library
+
+RUN mkdir switch-libs \
+  && curl -LJO https://github.com/ai03-2725/$AI03_LIB/archive/master.zip \
+  && unzip $AI03_LIB-master.zip \
+  && mv $AI03_LIB-master switch-libs/MX_Alps_Hybrid \
+  && rm -rf $AI03_LIB-master.zip \
+  && curl -LJO https://github.com/perigoso/$PERIGOSO_LIB/archive/main.zip \
+  && unzip $PERIGOSO_LIB-main.zip \
+  && mv $PERIGOSO_LIB-main switch-libs/Switch_Keyboard \
+  && rm -rf $PERIGOSO_LIB-main.zip
 
 ENV KICAD_SYMBOL_DIR=/usr/share/kicad/library
 ENV KISYSMOD=/usr/share/kicad/modules
