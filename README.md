@@ -1,5 +1,7 @@
 # Keyboard tools
 
+[![website](https://img.shields.io/website?down_message=offline&up_message=keyboard-tools.xyz%20up&url=http%3A%2F%2Fkeyboard-tools.xyz%2F)](http://keyboard-tools.xyz)
+
 ## KiCad project generator
 
 Features:
