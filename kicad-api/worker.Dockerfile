@@ -28,11 +28,11 @@ ARG PERIGOSO_LIB=keyswitch-kicad-library
 RUN mkdir switch-libs \
   && curl -LJO https://github.com/ai03-2725/$AI03_LIB/archive/master.zip \
   && unzip $AI03_LIB-master.zip \
-  && mv $AI03_LIB-master switch-libs/MX_Alps_Hybrid \
+  && mv $AI03_LIB-master switch-libs/$AI03_LIB \
   && rm -rf $AI03_LIB-master.zip \
   && curl -LJO https://github.com/perigoso/$PERIGOSO_LIB/archive/main.zip \
   && unzip $PERIGOSO_LIB-main.zip \
-  && mv $PERIGOSO_LIB-main switch-libs/Switch_Keyboard \
+  && mv $PERIGOSO_LIB-main switch-libs/$PERIGOSO_LIB \
   && rm -rf $PERIGOSO_LIB-main.zip
 
 ENV KICAD_SYMBOL_DIR=/usr/share/kicad/library

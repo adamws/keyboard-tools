@@ -6,7 +6,7 @@ Features:
 
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
-  and [Switch_Keyboard](https://github.com/perigoso/keyswitch-kicad-library)
+  and [keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
 - three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
 - supports basic pre-routing
@@ -89,7 +89,7 @@ Access the application on http://localhost
 - keyboard layout file serialized by [kle-serial](https://github.com/ijprest/kle-serial)
 - netlist generated with [skidl](https://github.com/xesscorp/skidl) based [kle2netlist](https://github.com/adamws/kle2netlist)
 - switch footprints by [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
-  and [Switch_Keyboard](https://github.com/perigoso/Switch_Keyboard)
+  and [keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
 - key placement with [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer)
 - pcb preview generated with [pcbdraw](https://github.com/yaqwsx/PcbDraw)
 - project structure generated with [goxygen](https://github.com/Shpota/goxygen)

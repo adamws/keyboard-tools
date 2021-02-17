@@ -23,7 +23,7 @@ Which produces this layout:
 
 ## Footprint library
 
-User can choose between two footprint libraries: [perigoso/Switch_Keyboard](https://github.com/perigoso/keyswitch-kicad-library)
+User can choose between two footprint libraries: [perigoso/keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
 and [ai03-2725/MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid).
 MX_Alps_Hybrid has become de facto standard in mechanical keyboard maker
 community but alternative by perigoso (which is based on ai03-2725 work)
