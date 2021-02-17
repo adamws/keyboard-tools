@@ -6,6 +6,8 @@ User needs to design microcontroller circuit and route everything together.
 In this guide I'm using `Default 60%` preset from
 [keyboard-layout-editor](www.keyboard-layout-editor.com).
 
+![pcb](./assets/layout60.png)
+
 Recommended workflow contains following steps:
 
 - Download json layout of your design (attention: this is not data
@@ -37,6 +39,20 @@ Recommended workflow contains following steps:
   to provided layout like this:
 
   ![pcb](./assets/pcb.png)
+
+  - Run DRC check. In this example, there is one invalid track.
+
+    ![pcb](./assets/drc-result.png)
+
+    In order to fix it, simple remove faulty track segment and route it manually,
+    for example:
+
+    ![pcb](./assets/drc-fix.png)
+
+    ::: tip
+    Always run DRC check on imported projects. Implemented router does not guarantee
+    that rules are met, for details see [this](features#routing)).
+    :::
 
 - From this point onward, PCB needs to be finished by user.
   - Open `Schematic Layout Editor`, because schematic is not generated there
