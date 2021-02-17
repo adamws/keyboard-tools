@@ -39,12 +39,12 @@ export default {
   data() {
     return {
       matrixOptions: ["Automatic", "Predefined"],
-      switchLibraryOptions: ["perigoso/Switch_Keyboard", "ai03-2725/MX_Alps_Hybrid"],
+      switchLibraryOptions: ["perigoso/keyswitch-kicad-library", "ai03-2725/MX_Alps_Hybrid"],
       switchFootprintOptions: ["MX", "Alps", "MX/Alps Hybrid"],
       routingOptions: ["Disabled", "Full"],
 
       matrixOption: "Automatic",
-      switchLibrary: "perigoso/Switch_Keyboard",
+      switchLibrary: "perigoso/keyswitch-kicad-library",
       switchFootprint: "MX",
       routingOption: "Disabled",
     }

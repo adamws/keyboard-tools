@@ -32,7 +32,7 @@ RUN mkdir switch-libs \
   && rm -rf $AI03_LIB-master.zip \
   && curl -LJO https://github.com/perigoso/$PERIGOSO_LIB/archive/main.zip \
   && unzip $PERIGOSO_LIB-main.zip \
-  && mv $PERIGOSO_LIB-main switch-libs/Switch_Keyboard \
+  && mv $PERIGOSO_LIB-main switch-libs/keyswitch-kicad-library \
   && rm -rf $PERIGOSO_LIB-main.zip
 
 ENV KICAD_SYMBOL_DIR=/usr/share/kicad/library

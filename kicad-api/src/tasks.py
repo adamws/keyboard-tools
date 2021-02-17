@@ -46,17 +46,17 @@ def __prepare_project(project_full_path, project_name, switch_library):
     tm = Template(
         "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
     )
-    if switch_library == "perigoso/Switch_Keyboard":
+    if switch_library == "perigoso/keyswitch-kicad-library":
         fp_lib_table = tm.render(
             fp_libs=[
-                '(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
-                '(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
-                '(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
-                '(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri ${KIPRJMOD}/libs/Switch_Keyboard/modules/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
+                '(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
+                '(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
+                '(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
+                '(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
             ]
         )
         shutil.copytree(
-            "switch-libs/Switch_Keyboard", f"{project_full_path}/libs/Switch_Keyboard"
+            "switch-libs/keyswitch-kicad-library", f"{project_full_path}/libs/keyswitch-kicad-library"
         )
     else:
         fp_lib_table = tm.render(
