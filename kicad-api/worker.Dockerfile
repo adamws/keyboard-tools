@@ -13,14 +13,17 @@ RUN apt-get update \
 
 RUN add-apt-repository --yes ppa:kicad/kicad-5.1-releases \
   && apt-get update \
-  && apt-get install -y kicad
+  && apt-get install -y --no-install-recommends kicad \
+     kicad-footprints kicad-libraries kicad-symbols
 
 COPY worker-requirements.txt .
 RUN pip3 install -r worker-requirements.txt
 
-RUN useradd -ms /bin/bash user
-USER user
-WORKDIR /home/user
+RUN useradd --create-home --shell /bin/bash worker \
+  && usermod -m -d /workspace worker
+
+USER worker
+WORKDIR /workspace
 
 ARG AI03_LIB=MX_Alps_Hybrid
 ARG PERIGOSO_LIB=keyswitch-kicad-library

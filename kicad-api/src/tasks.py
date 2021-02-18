@@ -47,23 +47,26 @@ def __prepare_project(project_full_path, project_name, switch_library):
         "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
     )
     if switch_library == "perigoso/keyswitch-kicad-library":
+        prefix = "${KIPRJMOD}/libs/keyswitch-kicad-library/modules"
         fp_lib_table = tm.render(
             fp_libs=[
-                '(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
-                '(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
-                '(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
-                '(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri ${KIPRJMOD}/libs/keyswitch-kicad-library/modules/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
+                f'(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri {prefix}/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
+                f'(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri {prefix}/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
+                f'(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri {prefix}/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
+                f'(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri {prefix}/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
             ]
         )
         shutil.copytree(
-            "switch-libs/keyswitch-kicad-library", f"{project_full_path}/libs/keyswitch-kicad-library"
+            "switch-libs/keyswitch-kicad-library",
+            f"{project_full_path}/libs/keyswitch-kicad-library",
         )
     else:
+        prefix = "${KIPRJMOD}/libs/MX_Alps_Hybrid"
         fp_lib_table = tm.render(
             fp_libs=[
-                '(lib (name MX_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Only.pretty)(options "")(descr ""))'
-                '(lib (name Alps_Only)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/Alps_Only.pretty)(options "")(descr ""))'
-                '(lib (name MX_Alps_Hybrid)(type KiCad)(uri ${KIPRJMOD}/libs/MX_Alps_Hybrid/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
+                '(lib (name MX_Only)(type KiCad)(uri {prefix}/MX_Only.pretty)(options "")(descr ""))'
+                '(lib (name Alps_Only)(type KiCad)(uri {prefix}/Alps_Only.pretty)(options "")(descr ""))'
+                '(lib (name MX_Alps_Hybrid)(type KiCad)(uri {prefix}/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
             ]
         )
         shutil.copytree(
@@ -123,7 +126,7 @@ def __upload_to_storage(task_id, log_path):
         client.set_bucket_lifecycle("kicad-projects", config)
 
     client.fput_object(
-        bucket_name, f"{task_id}/{task_id}.zip", f"/home/user/{task_id}.zip"
+        bucket_name, f"{task_id}/{task_id}.zip", f"/workspace/{task_id}.zip"
     )
     client.fput_object(bucket_name, f"{task_id}/front.svg", f"{log_path}/front.svg")
 

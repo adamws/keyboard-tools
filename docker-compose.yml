@@ -29,7 +29,7 @@ services:
       dockerfile: worker.Dockerfile
     command: celery -A src.tasks.celery worker -l INFO
     volumes:
-      - ./kicad-api/src:/home/user/src
+      - ./kicad-api/src:/workspace/src
     env_file:
       - production.env
     depends_on:
