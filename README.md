@@ -1,10 +1,15 @@
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/adamws/keyboard-tools/master/webapp/src/assets/logo.png" width="300">
+
 # Keyboard tools
 
-[![website](https://img.shields.io/website?down_message=offline&up_message=keyboard-tools.xyz%20up&url=http%3A%2F%2Fkeyboard-tools.xyz%2F)](http://keyboard-tools.xyz)
+[![Website](https://img.shields.io/website?down_message=offline&up_message=up&url=http%3A%2F%2Fkeyboard-tools.xyz)](http://keyboard-tools.xyz)
+[![GitHub](https://img.shields.io/github/license/adamws/keyboard-tools)](https://github.com/adamws/keyboard-tools/blob/master/LICENSE)
+
+</div>
 
 ## KiCad project generator
-
-Features:
 
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
@@ -15,76 +20,15 @@ Features:
 
 Detailed documentation available here: [keyboard-tools/kicad-project-generator](https://adamws.github.io/keyboard-tools/kicad-project-generator)
 
-**Disclaimer:** this project is under active development.
-Website should be running latest master revision but it may be unstable and buggy.
-
 ## KLE converter
 
 - use [kle-serial](https://github.com/ijprest/kle-serial) via web interface at [keyboard-tools.xyz/kle-converter](http://keyboard-tools.xyz/kle-converter)
 - includes [patch](https://github.com/ijprest/kle-serial/pull/1) which fix
   rotated key issue
 
-## For developers
+## Development
 
-### Environment setup
-
-You need to have [Go](https://golang.org/),
-[Node.js](https://nodejs.org/),
-[Docker](https://www.docker.com/), and
-[Docker Compose](https://docs.docker.com/compose/)
-(comes pre-installed with Docker on Mac and Windows)
-installed on your computer.
-
-Verify the tools by running the following commands:
-
-```sh
-go version
-npm --version
-docker --version
-docker-compose --version
-```
-
-### Start in development mode
-
-From `kicad-api` directory run the command (you might
-need to prepend it with `sudo` depending on your setup):
-
-```sh
-docker-compose up
-```
-
-This starts a `kicad` specific containers required by `server`.
-
-Navigate to the `server` folder and start the back end:
-
-```sh
-cd server
-go run server.go
-```
-
-The back end will serve on http://localhost:8080.
-
-Navigate to the `webapp` folder, install dependencies,
-and start the front end development server by running:
-
-```sh
-cd webapp
-npm install
-npm start
-```
-
-The application will be available on http://localhost:3000.
-
-### Start in production mode
-
-From project root perform:
-
-```sh
-docker-compose up
-```
-
-This will build the application and start.
-Access the application on http://localhost
+For development guide see [this](https://adamws.github.io/keyboard-tools/kicad-project-generator/development).
 
 ## Credits
 

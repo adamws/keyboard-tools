@@ -49,6 +49,7 @@ module.exports = {
             'features',
             'examples',
             'guide',
+            'development',
           ]
         }
       ],
