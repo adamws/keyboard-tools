@@ -60,13 +60,7 @@ export default {
       this.progressBarStatus = "exception";
     },
     getTaskRender() {
-      axios.get(`${this.apiEndpoint}/${this.taskId}/render`)
-           .then(resp => {
-             this.svgData = `data:image/svg+xml;base64,${resp.data}`;
-           })
-           .catch(() => {
-             this.showFailAlert("Preview render not available");
-           });
+      this.svgData = `${this.apiEndpoint}/${this.taskId}/render`
     },
     getTaskStatus() {
       axios.get(`${this.apiEndpoint}/${this.taskId}`)

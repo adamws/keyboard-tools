@@ -2,22 +2,6 @@ version: '3.7'
 
 services:
 
-  api:
-      build:
-        context: .
-        dockerfile: api.Dockerfile
-      ports:
-        - 5000:5000
-      command: python3 api.py
-      volumes:
-        - ./src:/usr/src
-      environment:
-        - FLASK_DEBUG=1
-        - CELERY_BROKER_URL=redis://redis:6379/0
-        - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      depends_on:
-        - redis
-
   worker:
     build:
       context: .
@@ -29,12 +13,13 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - api
       - redis
       - minio
 
   redis:
     image: redis:6-alpine
+    ports:
+      - 6379:6379
 
   minio:
     image: minio/minio
@@ -43,14 +28,12 @@ services:
     ports:
       - 9000:9000
     environment:
-    environment:
       MINIO_ACCESS_KEY: minio_dev
       MINIO_SECRET_KEY: minio_dev_secret
       PYTHONUNBUFFERED: 1
       S3_ACCESS_KEY: minio_dev
       S3_SECRET_KEY: minio_dev_secret
     command: server /data
-
 
 volumes:
   minio_data:

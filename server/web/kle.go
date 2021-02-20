@@ -1,5 +1,11 @@
 package web
 
+import (
+	"fmt"
+	"math"
+	"regexp"
+)
+
 type kleJsonLayout struct {
 	Meta kleMetadata `json:"meta"`
 	Keys []kleKey    `json:"keys"`
@@ -52,4 +58,48 @@ type kleKey struct {
 type kleDefaultText struct {
 	TextColor string `json:"textColor"`
 	TextSize  int64  `json:"textSize"`
+}
+
+// checks if all keys contains valid row-column assignment
+func areKeysAnnotated(keys []kleKey) bool {
+	re, _ := regexp.Compile(`^\d+\,\d+$`)
+	for _, key := range keys {
+		matrixPositionLabel := ""
+		if len(key.Labels) != 0 {
+			matrixPositionLabel = key.Labels[0]
+		}
+		if !re.Match([]byte(matrixPositionLabel)) {
+			return false
+		}
+	}
+	return true
+}
+
+func getKeyCenter(key kleKey) (float64, float64) {
+	x := key.X + (key.Width / 2)
+	y := key.Y + (key.Height / 2)
+
+	rotOrginX := key.RotationX
+	rotOrginY := key.RotationY
+	angle := -1 * key.RotationAngle
+	angleRad := angle * math.Pi / 180
+
+	x = x - rotOrginX
+	y = y - rotOrginY
+
+	x = (x * math.Cos(angleRad)) - (y * math.Sin(angleRad))
+	y = (y * math.Cos(angleRad)) + (x * math.Sin(angleRad))
+
+	x = x + rotOrginX
+	y = y + rotOrginY
+
+	return x, y
+}
+
+func annotateKeys(keys []kleKey) {
+	for i, key := range keys {
+		x, y := getKeyCenter(key)
+		key.Labels = []string{fmt.Sprintf("%d,%d", int(y), int(x))}
+		keys[i] = key
+	}
 }

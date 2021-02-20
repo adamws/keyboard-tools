@@ -5,23 +5,12 @@ services:
     build: .
     ports:
       - 80:8080
-    environment:
-      profile: prod
-    depends_on:
-      - api
-      - worker
-
-  api:
-    build:
-      context: ./kicad-api
-      dockerfile: api.Dockerfile
-    command: python3 api.py
-    volumes:
-      - ./kicad-api/src:/usr/src
     env_file:
       - production.env
     depends_on:
+      - worker
       - redis
+      - minio
 
   worker:
     build:
@@ -33,7 +22,6 @@ services:
     env_file:
       - production.env
     depends_on:
-      - api
       - redis
       - minio
 
