@@ -65,6 +65,13 @@ export default {
 </script>
 
 <style scoped>
+
+@media screen and (max-width: 800px) {
+  .el-row {
+    flex-direction: column;
+  }
+}
+
 .el-row {
   margin-bottom: 4px;
 }

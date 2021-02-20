@@ -1,11 +1,11 @@
 <template>
   <div id="app">
     <el-container>
-      <el-header style="height: 20px;">
-        <div><img :src="logo" height="15"/> Keyboard tools</div>
+      <el-header style="height: 80px;">
+        <div><img :src="logo" height="60"/></div><div>Keyboard tools</div>
       </el-header>
       <el-main>
-        <el-menu :default-active="$route.path" :router="true" class="el-menu-demo" mode="horizontal">
+        <el-menu :default-active="$route.path" :router="true" mode="horizontal">
           <el-menu-item index="/" route="/">KiCad Project Generator</el-menu-item>
           <el-menu-item index="/kle-converter" route="/kle-converter">KLE converter</el-menu-item>
           <el-menu-item index="/help" route="/help">Help</el-menu-item>
@@ -29,7 +29,7 @@ export default {
       logo: require('./assets/logo.png'),
       githubIcon: require('./assets/GitHub-Mark-32px.png'),
     }
-  }
+  },
 };
 </script>
 
@@ -50,6 +50,7 @@ body {
     padding-right: 5%;
     padding-left: 5%;
   }
+
 }
 
 @media screen and (min-width: 1600px) {
@@ -59,11 +60,19 @@ body {
   }
 }
 
+@media screen and (max-width: 800px) {
+  .el-menu--horizontal > .el-menu-item {
+    height: 30px;
+    line-height: 30px;
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
   background-color: #b3e6ff;
 }
+
 
 .el-header, .el-footer {
   text-align: center;
