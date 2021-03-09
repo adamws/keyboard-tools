@@ -31,6 +31,15 @@
       </el-radio-group>
     </el-col>
   </el-row>
+  <el-row>
+    <el-col class="setting-name" :span="4">Controller circuit:</el-col>
+    <el-col :span="20">
+      <el-radio-group v-model="controllerCircuit">
+        <el-radio v-for="option in controllerCircuitOptions" :label="option" :key="option">{{option}}</el-radio>
+      </el-radio-group>
+      <span style="color:#E6A23C;"> (experimental)</span>
+    </el-col>
+  </el-row>
 </template>
 
 <script>
@@ -42,11 +51,13 @@ export default {
       switchLibraryOptions: ["perigoso/keyswitch-kicad-library", "ai03-2725/MX_Alps_Hybrid"],
       switchFootprintOptions: ["MX", "Alps", "MX/Alps Hybrid"],
       routingOptions: ["Disabled", "Full"],
+      controllerCircuitOptions: ["None", "ATmega32U4"],
 
       matrixOption: "Automatic",
       switchLibrary: "perigoso/keyswitch-kicad-library",
       switchFootprint: "MX",
       routingOption: "Disabled",
+      controllerCircuit: "None",
     }
   },
   emits: ["settings"],
@@ -57,6 +68,7 @@ export default {
         "switchLibrary": this.switchLibrary,
         "switchFootprint": this.switchFootprint,
         "routing": this.routingOption,
+        "controllerCircuit": this.controllerCircuit,
         }
       );
     }
@@ -81,4 +93,5 @@ export default {
 .setting-name {
   cursor: default;
 }
+
 </style>

@@ -135,10 +135,11 @@ type kleJsonRequest struct {
 }
 
 type pcbSettings struct {
-	MatrixOption    string `json:"matrixOption"`
-	SwitchLibrary   string `json:"switchLibrary"`
-	SwitchFootprint string `json:"switchFootprint"`
-	Routing         string `json:"routing"`
+	MatrixOption      string `json:"matrixOption"`
+	SwitchLibrary     string `json:"switchLibrary"`
+	SwitchFootprint   string `json:"switchFootprint"`
+	Routing           string `json:"routing"`
+	ControllerCircuit string `json:"controllerCircuit"`
 }
 
 type taskStatus struct {

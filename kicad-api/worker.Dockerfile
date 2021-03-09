@@ -43,3 +43,6 @@ ENV KISYSMOD=/usr/share/kicad/modules
 
 RUN curl -O https://raw.githubusercontent.com/adamws/kicad-kbplacer/master/keyautoplace.py
 
+RUN mkdir templates \
+  && cd templates \
+  && curl -O https://raw.githubusercontent.com/adamws/kle2netlist/master/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb

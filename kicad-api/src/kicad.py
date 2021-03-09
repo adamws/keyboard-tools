@@ -81,14 +81,13 @@ def prepare_project(project_full_path, project_name, switch_library):
 
 
 def generate_netlist(
-    project_full_path, layout_file, netlist_path, switch_library, switch_footprint
+    project_full_path, layout_file, netlist_path, switch_library, switch_footprint, controller_circuit
 ):
     project_libs = "/usr/share/kicad/library"
 
     kle2netlist_log = open(f"{project_full_path}/../logs/kle2netlist.log", "w")
 
-    p = subprocess.Popen(
-        [
+    args = [
             "kle2netlist",
             "--layout",
             layout_file,
@@ -100,7 +99,12 @@ def generate_netlist(
             switch_footprint,
             "-l",
             project_libs,
-        ],
+        ]
+    if controller_circuit == "ATmega32U4":
+        args.append("--controller-circuit")
+
+    p = subprocess.Popen(
+        args,
         stdout=kle2netlist_log,
         stderr=subprocess.STDOUT,
     )
@@ -147,6 +151,9 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
     ]
     if settings["routing"] == "Full":
         keyautoplace_args.append("--route")
+    if settings["controllerCircuit"] == "ATmega32U4":
+        keyautoplace_args.append("-t")
+        keyautoplace_args.append("/workspace/templates/atmega32u4-au-v1.kicad_pcb")
 
     p = subprocess.Popen(
         keyautoplace_args,
@@ -201,13 +208,35 @@ def generate_render(project_full_path, project_name):
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
+    # render is performed on copy of pcb from which all parts except
+    # switches and diodes were removed. This is due to microcontroller circuit
+    # which may be present but its placement is outside board outline
+    pcb_for_render = f"{project_full_path}/{project_name}_render.kicad_pcb"
+
+    shutil.copyfile(pcb_path, pcb_for_render)
+
+    try:
+        board = pcbnew.LoadBoard(pcb_for_render)
+        module = board.GetModules().GetFirst()
+        while module:
+            current_module = module
+            reference = current_module.GetReference()
+            module = current_module.Next()
+            if not re.match(r"^(SW|D)\d+$", reference):
+                board.Delete(current_module)
+
+        pcbnew.Refresh()
+        pcbnew.SaveBoard(pcb_for_render, board)
+    except Exception as err:
+        raise Exception("Removing modules before render generation failed") from err
+
     pcbdraw_log = open(f"{project_full_path}/../logs/pcbdraw.log", "w")
     p = subprocess.Popen(
         [
             "pcbdraw",
             "--filter",
             '""',
-            pcb_path,
+            pcb_for_render,
             f"{project_full_path}/../logs/front.svg",
         ],
         env=env,
@@ -218,6 +247,8 @@ def generate_render(project_full_path, project_name):
     if p.returncode != 0:
         raise Exception("Preview render failed")
 
+    os.remove(pcb_for_render)
+
 
 def new_pcb(task_id, task_request, update_state_callback):
     update_state_callback(0)
@@ -227,6 +258,7 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     switch_library = settings["switchLibrary"]
     switch_footprint = settings["switchFootprint"]
+    controller_circuit = settings["controllerCircuit"]
 
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
@@ -245,7 +277,7 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     update_state_callback(20)
     generate_netlist(
-        project_full_path, layout_file, netlist_path, switch_library, switch_footprint
+        project_full_path, layout_file, netlist_path, switch_library, switch_footprint, controller_circuit
     )
 
     update_state_callback(30)
