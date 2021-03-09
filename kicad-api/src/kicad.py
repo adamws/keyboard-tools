@@ -42,9 +42,9 @@ def prepare_project(project_full_path, project_name, switch_library):
         prefix = "${KIPRJMOD}/libs/MX_Alps_Hybrid"
         fp_lib_table = tm.render(
             fp_libs=[
-                '(lib (name MX_Only)(type KiCad)(uri {prefix}/MX_Only.pretty)(options "")(descr ""))'
-                '(lib (name Alps_Only)(type KiCad)(uri {prefix}/Alps_Only.pretty)(options "")(descr ""))'
-                '(lib (name MX_Alps_Hybrid)(type KiCad)(uri {prefix}/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
+                f'(lib (name MX_Only)(type KiCad)(uri {prefix}/MX_Only.pretty)(options "")(descr ""))'
+                f'(lib (name Alps_Only)(type KiCad)(uri {prefix}/Alps_Only.pretty)(options "")(descr ""))'
+                f'(lib (name MX_Alps_Hybrid)(type KiCad)(uri {prefix}/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
             ]
         )
         shutil.copytree(
