@@ -225,6 +225,16 @@ def generate_render(project_full_path, project_name):
             if not re.match(r"^(SW|D)\d+$", reference):
                 board.Delete(current_module)
 
+        # include only collumn/row tracks in render in case
+        # there are microcontroller circuit tracks present
+        track = board.GetTracks().GetFirst()
+        while track:
+            current_track = track
+            name = current_track.GetNetname()
+            track = track.Next()
+            if not re.match(r"^(ROW|COL|N\$)\d+$", name):
+                board.Delete(current_track)
+
         pcbnew.Refresh()
         pcbnew.SaveBoard(pcb_for_render, board)
     except Exception as err:
