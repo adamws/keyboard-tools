@@ -81,7 +81,7 @@ def prepare_project(project_full_path, project_name, switch_library):
 
 
 def generate_netlist(
-    project_full_path, layout_file, netlist_path, switch_library, switch_footprint, controller_circuit
+    project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
 ):
     project_libs = "/usr/share/kicad/library"
 
@@ -91,8 +91,10 @@ def generate_netlist(
             "kle2netlist",
             "--layout",
             layout_file,
-            "--output",
-            netlist_path,
+            "--output-dir",
+            project_full_path,
+            "--name",
+            project_name,
             "--switch-library",
             switch_library,
             "--switch-footprint",
@@ -273,7 +275,6 @@ def new_pcb(task_id, task_request, update_state_callback):
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
-    netlist_path = f"{project_full_path}/{project_name}.net"
 
     update_state_callback(10)
     prepare_project(project_full_path, project_name, switch_library)
@@ -287,7 +288,7 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     update_state_callback(20)
     generate_netlist(
-        project_full_path, layout_file, netlist_path, switch_library, switch_footprint, controller_circuit
+        project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
     )
 
     update_state_callback(30)
