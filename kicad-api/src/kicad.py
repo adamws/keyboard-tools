@@ -145,7 +145,7 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
 
     keyautoplace_args = [
         "python3",
-        "keyautoplace.py",
+        ".kicad/scripting/plugins/keyautoplace.py",
         "-l",
         layout_file,
         "-b",

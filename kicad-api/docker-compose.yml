@@ -5,10 +5,8 @@ services:
   worker:
     build:
       context: .
-      dockerfile: worker.Dockerfile
+      dockerfile: Dockerfile
     command: celery -A src.tasks.celery worker -l INFO
-    volumes:
-      - ./src:/workspace/src
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0

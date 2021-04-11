@@ -51,14 +51,3 @@ npm start
 
 The application will be available on `http://localhost:3000`.
 
-#### Start in production mode
-
-From project root perform:
-
-```sh
-docker-compose up
-```
-
-This will build the application and start.
-Access the application on `http://localhost`
-

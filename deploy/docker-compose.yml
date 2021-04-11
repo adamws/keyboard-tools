@@ -2,7 +2,7 @@ version: "3.7"
 services:
 
   app:
-    build: .
+    image: admwscki/keyboard-tools-server:latest
     ports:
       - 80:8080
     env_file:
@@ -13,12 +13,8 @@ services:
       - minio
 
   worker:
-    build:
-      context: ./kicad-api
-      dockerfile: worker.Dockerfile
+    image: admwscki/keyboard-tools-kicad:latest
     command: celery -A src.tasks.celery worker -l INFO
-    volumes:
-      - ./kicad-api/src:/workspace/src
     env_file:
       - production.env
     depends_on:

@@ -1,0 +1,5 @@
+.git
+.github
+
+webapp/node_modules/
+docs/node_modules/
