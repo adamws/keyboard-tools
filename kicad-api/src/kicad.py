@@ -155,7 +155,7 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
         keyautoplace_args.append("--route")
     if settings["controllerCircuit"] == "ATmega32U4":
         keyautoplace_args.append("-t")
-        keyautoplace_args.append("/workspace/templates/atmega32u4-au-v1.kicad_pcb")
+        keyautoplace_args.append(str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")))
 
     p = subprocess.Popen(
         keyautoplace_args,

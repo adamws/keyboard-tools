@@ -7,6 +7,7 @@ from celery.exceptions import Ignore
 from minio import Minio
 from minio.commonconfig import ENABLED
 from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
+from pathlib import Path
 
 from . import kicad
 
@@ -49,8 +50,9 @@ def __upload_to_storage(task_id, log_path):
         )
         client.set_bucket_lifecycle("kicad-projects", config)
 
+    home = Path.home()
     client.fput_object(
-        bucket_name, f"{task_id}/{task_id}.zip", f"/workspace/{task_id}.zip"
+        bucket_name, f"{task_id}/{task_id}.zip", f"{home}/{task_id}.zip"
     )
     client.fput_object(
         bucket_name,
