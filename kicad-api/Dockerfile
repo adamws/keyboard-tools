@@ -1,6 +1,6 @@
 FROM admwscki/kicad-kbplacer:latest
 
-ENV PATH="/workspace/.local/bin:${PATH}"
+ENV PATH="/kicad/.local/bin:${PATH}"
 
 RUN mkdir switch-libs \
   && cd switch-libs \
@@ -14,5 +14,5 @@ RUN mkdir templates \
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
-COPY src /workspace/src
+COPY src /kicad/src
 
