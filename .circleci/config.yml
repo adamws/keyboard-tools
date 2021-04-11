@@ -1,0 +1,23 @@
+version: 2.1
+
+jobs:
+  deploy-images:
+    docker:
+      - image: docker:20.10.5-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push Docker images
+          command: |
+            export TAG=0.1.${CIRCLE_SHA1}
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_LOGIN --password-stdin
+            ./deploy/build.sh
+
+workflows:
+  main:
+    jobs:
+      - deploy-images:
+          filters:
+            branches:
+              only: master
