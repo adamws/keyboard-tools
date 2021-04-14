@@ -13,6 +13,13 @@ jobs:
             export TAG=0.1.${CIRCLE_SHA1}
             echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_LOGIN --password-stdin
             ./deploy/build.sh
+      - add_ssh_keys:
+          fingerprints:
+            - "45:50:5a:76:8e:65:3f:42:b5:e6:98:22:5c:01:37:de"
+      - run:
+          name: Deploy on remote server
+          command: |
+            ./deploy/deploy.sh
 
 workflows:
   main:
