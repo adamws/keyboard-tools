@@ -1,9 +1,9 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
-# Build and deploy documentation with github actions
+set -o nounset
+set -o errexit
 
-# abort on errors
-set -e
+# Build and deploy documentation
 
 # install and build
 echo "==> Dependencies install\n"
@@ -16,9 +16,12 @@ npm run build
 cd src/.vuepress/dist
 
 echo "==> Prepare to deploy\n"
+
+wget https://raw.githubusercontent.com/adamws/keyboard-tools/master/.circleci/config.yml -P .circleci
+touch .nojekyll
 git init
-git config user.name "${GITHUB_ACTOR}"
-git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+git config user.name "CircleCI"
+git config user.email "${CIRCLE_PROJECT_USERNAME}@users.noreply.github.com"
 
 if [ -z "$(git status --porcelain)" ]; then
     echo "Something went wrong" && \
@@ -30,10 +33,8 @@ echo "==> Start deploying"
 git add -A
 git commit -m 'Deploy documentation'
 
-DEPLOY_REPO="https://${ACCESS_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-git push --force $DEPLOY_REPO master:gh-pages
+git push --force $CIRCLE_REPOSITORY_URL master:gh-pages
 
 rm -fr .git
 
-cd $GITHUB_WORKSPACE
 echo "==> Deploy succeeded"
