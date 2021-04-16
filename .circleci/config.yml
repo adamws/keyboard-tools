@@ -18,13 +18,28 @@ jobs:
             - "45:50:5a:76:8e:65:3f:42:b5:e6:98:22:5c:01:37:de"
       - run:
           name: Deploy on remote server
-          command: |
-            ./deploy/deploy.sh
+          command: ./deploy/deploy.sh
+  deploy-docs:
+    docker:
+      - image: cimg/node:15.14.0
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "59:cb:1c:c0:ad:2a:3a:7c:f1:d9:6c:30:44:f7:f8:bb"
+      - run:
+          name: Build and deploy github pages
+          working_directory: docs
+          command: ./deploy.sh
 
 workflows:
   main:
     jobs:
       - deploy-images:
+          filters:
+            branches:
+              only: master
+      - deploy-docs:
           filters:
             branches:
               only: master
