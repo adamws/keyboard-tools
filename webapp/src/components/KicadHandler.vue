@@ -14,7 +14,7 @@
   <div>
     <img style="width: 100%; height: 100%" :src="`${svgData}`" v-if="svgData !== ''">
     <a id="download" v-bind:href="getResultUrl()" v-if="taskStatus === 'SUCCESS'">
-      <el-button type="success">Download project</el-button>
+      <el-button id="download-btn" type="success">Download project</el-button>
     </a>
   </div>
 </template>

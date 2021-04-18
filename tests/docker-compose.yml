@@ -1,0 +1,21 @@
+version: "3"
+services:
+  firefox:
+    image: selenium/standalone-firefox:4.4.0
+    shm_size: 2gb
+    volumes:
+      - ./data:/home/seluser/data
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+  app:
+    image: admwscki/keyboard-tools-server:${TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    env_file:
+      - ../deploy/production.env
+    depends_on:
+      - worker
+      - redis
+      - minio
