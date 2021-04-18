@@ -1,8 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 set -o nounset
 set -o errexit
-set -o pipefail
 
 if [ -z "$(ssh-keygen -F $SSH_HOST)" ]; then
     echo "Adding host to known hosts"

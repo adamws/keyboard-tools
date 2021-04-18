@@ -2,7 +2,7 @@ version: "3.7"
 services:
 
   app:
-    image: admwscki/keyboard-tools-server:latest
+    image: admwscki/keyboard-tools-server:${TAG:-latest}
     ports:
       - 80:8080
     env_file:
@@ -13,7 +13,7 @@ services:
       - minio
 
   worker:
-    image: admwscki/keyboard-tools-kicad:latest
+    image: admwscki/keyboard-tools-kicad:${TAG:-latest}
     command: celery -A src.tasks.celery worker -l INFO
     env_file:
       - production.env

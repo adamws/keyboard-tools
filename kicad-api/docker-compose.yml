@@ -3,6 +3,7 @@ version: '3.7'
 services:
 
   worker:
+    image: admwscki/keyboard-tools-kicad:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
