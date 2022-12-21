@@ -5,7 +5,7 @@ import traceback
 from celery import Celery, states
 from celery.exceptions import Ignore
 from minio import Minio
-from minio.commonconfig import ENABLED
+from minio.commonconfig import ENABLED, Filter
 from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
 from pathlib import Path
 
@@ -43,6 +43,7 @@ def __upload_to_storage(task_id, log_path):
             [
                 Rule(
                     ENABLED,
+                    rule_filter=Filter(prefix=""),
                     rule_id="expire",
                     expiration=Expiration(days=1),
                 ),
