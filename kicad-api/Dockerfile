@@ -5,7 +5,8 @@ ENV PATH="/kicad/.local/bin:${PATH}"
 RUN mkdir switch-libs \
   && cd switch-libs \
   && git clone --depth 1 https://github.com/ai03-2725/MX_Alps_Hybrid \
-  && git clone --depth 1 https://github.com/perigoso/keyswitch-kicad-library
+  && git clone https://github.com/perigoso/keyswitch-kicad-library \
+  && cd keyswitch-kicad-library && git checkout e56f74e93c850e60e04023563835b5fe031fd638
 
 RUN mkdir templates \
   && cd templates \
