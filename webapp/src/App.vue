@@ -22,13 +22,15 @@
 </template>
 
 <script>
+import logo from './assets/logo.png'
+import githubIcon from './assets/GitHub-Mark-32px.png'
 export default {
   name: 'App',
   data() {
     return {
-      logo: require('./assets/logo.png'),
-      githubIcon: require('./assets/GitHub-Mark-32px.png'),
-    }
+      logo: logo,
+      githubIcon: githubIcon,
+    };
   },
 };
 </script>

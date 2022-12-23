@@ -20,6 +20,7 @@
 <script>
 import FileSaver from 'file-saver';
 import { PrismEditor } from 'vue-prism-editor';
+import * as kle from '@ijprest/kle-serial';
 import 'vue-prism-editor/dist/prismeditor.min.css';
 
 // import highlighting library
@@ -54,7 +55,6 @@ export default {
     },
     uploadLayout() {
       this.convertedLayout = '';
-      var kle = require('@ijprest/kle-serial');
       let file = this.$refs.file.files[0];
 
       let reader = new FileReader();

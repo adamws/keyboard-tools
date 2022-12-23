@@ -1,4 +1,4 @@
-FROM node:16.16.0-alpine3.15 AS JS_BUILD
+FROM node:19.3.0-alpine3.17 AS JS_BUILD
 RUN apk add --no-cache git
 COPY webapp /webapp
 WORKDIR webapp
@@ -11,6 +11,6 @@ WORKDIR /server
 RUN go build -o /go/bin/server
 
 FROM alpine:3.15.0
-COPY --from=JS_BUILD /webapp/build* ./webapp/
+COPY --from=JS_BUILD /webapp/dist* ./webapp/
 COPY --from=GO_BUILD /go/bin/server ./
 CMD ./server

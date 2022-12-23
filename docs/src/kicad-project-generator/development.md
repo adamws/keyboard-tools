@@ -46,8 +46,8 @@ and start the front end development server by running:
 ```sh
 cd webapp
 npm install
-npm start
+npm run dev
 ```
 
-The application will be available on `http://localhost:3000`.
+The application will be available on `http://localhost:5173`.
 
