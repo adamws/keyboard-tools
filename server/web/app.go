@@ -112,10 +112,7 @@ func (a *App) Serve() error {
 	router.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
 	router.PathPrefix("/").HandlerFunc(http.FileServer(http.Dir("/webapp")).ServeHTTP)
-	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", http.FileServer(http.Dir("/webapp/js"))))
-	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", http.FileServer(http.Dir("/webapp/css"))))
-	router.PathPrefix("/img/").Handler(http.StripPrefix("/img/", http.FileServer(http.Dir("/webapp/img"))))
-	router.PathPrefix("/fonts/").Handler(http.StripPrefix("/fonts/", http.FileServer(http.Dir("/webapp/fonts"))))
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("/webapp/assets"))))
 
 	srv := &http.Server{
 		Handler: router,

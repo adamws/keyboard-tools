@@ -22,12 +22,13 @@
 <script>
 import axios from 'axios'
 import PcbSettings from '@/components/PcbSettings.vue'
+import * as kle from '@ijprest/kle-serial'
 
 export default {
   name: 'KicadHandler',
   data() {
     return {
-      apiEndpoint: `${process.env.VUE_APP_API_URL}/api/pcb`,
+      apiEndpoint: `${import.meta.env.VITE_WORKER_URL}/api/pcb`,
       taskId: null,
       taskStatus: null,
       progressBarStatus: "",
@@ -85,8 +86,6 @@ export default {
       return `${this.apiEndpoint}/${this.taskId}/result`;
     },
     uploadLayout() {
-      var kle = require('@ijprest/kle-serial');
-
       let file = this.$refs.file.files[0];
 
       let reader = new FileReader();

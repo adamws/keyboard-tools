@@ -733,15 +733,3 @@ index 0000000..ca22f01
 +    });
 +  });
 +});
-diff --git a/node_modules/@ijprest/kle-serial/tsconfig.json b/node_modules/@ijprest/kle-serial/tsconfig.json
-index 4fc629a..5cb8559 100755
---- a/node_modules/@ijprest/kle-serial/tsconfig.json
-+++ b/node_modules/@ijprest/kle-serial/tsconfig.json
-@@ -2,6 +2,7 @@
-   "compilerOptions": {
-     "target": "es5",
-     "module": "commonjs",
-+    "lib": ["es5", "es6"],
-     "declaration": true,
-     "outDir": "./dist",
-     "strict": true,
