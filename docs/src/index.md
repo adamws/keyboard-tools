@@ -1,8 +1,11 @@
 ---
 home: true
-heroImage: https://raw.githubusercontent.com/adamws/keyboard-tools/master/webapp/src/assets/logo.png
+heroImage: /images/logo.png
+heroText: Keyboard Tools
 tagline: Tools for mechanical keyboard design
-actionText: Quick Start →
-actionLink: /kicad-project-generator/
+actions:
+  - text: Quick Start →
+    link: /kicad-project-generator/
 footer: Made by adamws
 ---
+

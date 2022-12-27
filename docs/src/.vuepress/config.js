@@ -1,39 +1,13 @@
-const { description } = require('../../package')
+import { defineUserConfig } from 'vuepress'
+import { defaultTheme } from '@vuepress/theme-default'
 
-module.exports = {
-  /**
-   * Ref：https://v1.vuepress.vuejs.org/config/#title
-   */
+export default defineUserConfig({
   title: 'Keyboard Tools',
-  /**
-   * Ref：https://v1.vuepress.vuejs.org/config/#description
-   */
-  description: description,
-
-  /**
-   * Extra tags to be injected to the page HTML `<head>`
-   *
-   * ref：https://v1.vuepress.vuejs.org/config/#head
-   */
-  head: [
-    ['meta', { name: 'theme-color', content: '#3eaf7c' }],
-    ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
-    ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black' }]
-  ],
-
-  base: "/keyboard-tools/",
-  /**
-   * Theme configuration, here is the default theme configuration for VuePress.
-   *
-   * ref：https://v1.vuepress.vuejs.org/theme/default-theme-config.html
-   */
-  themeConfig: {
-    repo: '',
-    editLinks: false,
-    docsDir: '',
-    editLinkText: '',
-    lastUpdated: false,
-    nav: [
+  lang: 'en-US',
+  head: [['link', { rel: 'icon', href: '/images/favicon.ico' }]],
+  theme: defaultTheme({
+    home: "/",
+    navbar: [
       {
         text: 'Github',
         link: 'https://github.com/adamws/keyboard-tools'
@@ -42,10 +16,13 @@ module.exports = {
     sidebar: {
       '/kicad-project-generator/': [
         {
-          title: 'KiCad Project Generator',
+          text: 'KiCad Project Generator',
           collapsable: false,
           children: [
-            '',
+            {
+              text: 'Introduction',
+              link: 'README.md'
+            },
             'features',
             'examples',
             'guide',
@@ -53,14 +30,11 @@ module.exports = {
           ]
         }
       ],
-    }
-  },
+    },
+    lastUpdated: false,
+    contributors: false,
+    nextLinks: true,
+    prevLinkgs: true,
+  }),
+})
 
-  /**
-   * Apply plugins，ref：https://v1.vuepress.vuejs.org/zh/plugin/
-   */
-  plugins: [
-    '@vuepress/plugin-back-to-top',
-    '@vuepress/plugin-medium-zoom',
-  ]
-}

@@ -1,0 +1,15 @@
+:root {
+  // brand colors
+  --c-brand: #409eff;
+  --c-brand-light: #409eff;
+}
+
+html.dark {
+  // brand colors
+  --c-brand: #409eff;
+  --c-brand-light: #409eff;
+}
+
+.home .hero img {
+  max-height: 150px;
+}
