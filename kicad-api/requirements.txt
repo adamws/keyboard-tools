@@ -4,4 +4,4 @@ kinet2pcb==0.1.1
 minio==7.0.1
 PcbDraw==0.6.1
 redis==3.5.3
-git+https://github.com/adamws/kle2netlist@master
+git+https://github.com/adamws/kle2netlist@v0.1
