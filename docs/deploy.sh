@@ -18,6 +18,7 @@ cd src/.vuepress/dist
 echo "==> Prepare to deploy\n"
 
 wget https://raw.githubusercontent.com/adamws/keyboard-tools/master/.circleci/config.yml -P .circleci
+wget https://raw.githubusercontent.com/adamws/keyboard-tools/master/.circleci/continue-config.yml -P .circleci
 touch .nojekyll
 git init
 git config user.name "CircleCI"

@@ -1,144 +1,20 @@
 version: 2.1
 
-jobs:
-  build:
-    docker:
-      - image: cimg/base:2022.12
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build server docker image
-          command: |
-            export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
-            set +o pipefail
-            docker load -i server-image.tar | true
-            docker build -t ${SERVER_IMAGE} -f deploy/Dockerfile .
-            docker save -o server-image.tar ${SERVER_IMAGE}
-      - run:
-          name: Build worker docker image
-          command: |
-            export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
-            docker build -t ${WORKER_IMAGE} -f kicad-api/Dockerfile kicad-api
-            docker save -o worker-image.tar ${WORKER_IMAGE}
-      - persist_to_workspace:
-          root: .
-          paths:
-           - server-image.tar
-           - worker-image.tar
-  test:
-    machine:
-      image: ubuntu-2004:2022.10.1
-    steps:
-      - checkout
-      - run:
-          name: Install Docker Compose
-          environment:
-            COMPOSE_VERSION: '1.29.2'
-          command: |
-            curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o ~/docker-compose
-            chmod +x ~/docker-compose
-            sudo mv ~/docker-compose /usr/local/bin/docker-compose
-      - attach_workspace:
-          at: .
-      - run:
-          name: Load docker images
-          command: |
-            docker load -i server-image.tar
-            docker load -i worker-image.tar
-      - run:
-          name: Run tools stack
-          working_directory: tests
-          command: |
-            export TAG=circleci
-            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml up -d
-      - restore_cache:
-          key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
-      - run:
-          name: Install Python deps in a venv
-          working_directory: tests
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-      - save_cache:
-          key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
-          paths:
-            - "tests/venv"
-      - run:
-          name: Run tests
-          working_directory: tests
-          command: |
-            . venv/bin/activate
-            ./wait-for-selenium.sh pytest
-      - run:
-          name: Stop tools stack
-          working_directory: tests
-          command: |
-            export TAG=circleci
-            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml stop
-      - store_artifacts:
-          path: tests/report.html
-      - store_artifacts:
-          path: tests/selenium.log
-  deploy-images:
-    docker:
-      - image: cimg/base:2022.12
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: .
-      - run:
-          name: Load docker images
-          command: |
-            docker load -i server-image.tar
-            docker load -i worker-image.tar
-      - run:
-          name: Tag and push Docker images
-          command: |
-            export TAG=0.1.${CIRCLE_SHA1}
-            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_LOGIN --password-stdin
-            ./.circleci/tag.sh
-      - add_ssh_keys:
-          fingerprints:
-            - "45:50:5a:76:8e:65:3f:42:b5:e6:98:22:5c:01:37:de"
-      - run:
-          name: Deploy on remote server
-          command: ./.circleci/deploy.sh
-  deploy-docs:
-    docker:
-      - image: cimg/node:15.14.0
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "57:88:ea:26:a0:1b:ca:92:49:7f:95:ac:59:0a:7f:6f"
-      - run:
-          name: Build and deploy github pages
-          working_directory: docs
-          command: ./deploy.sh
+setup: true
+
+orbs:
+  path-filtering: circleci/path-filtering@0.1.3
 
 workflows:
-  main:
+  generate-config:
     jobs:
-      - build:
-          filters:
-            branches:
-              ignore: gh-pages
-      - test:
-          requires:
-            - build
-      - hold:
-          type: approval
-          requires:
-            - test
-          filters:
-            branches:
-              only: master
-      - deploy-images:
-          requires:
-            - hold
-      - deploy-docs:
-          requires:
-            - deploy-images
+      - path-filtering/filter:
+          base-revision: master
+          config-path: .circleci/continue-config.yml
+          mapping: |
+            deploy/.* run-deploy true
+            kicad-api/.* run-build-code true
+            server/.* run-build-code true
+            webapp/.* run-build-code true
+            tests/.* run-tests true
+            docs/.* run-deploy-docs true
