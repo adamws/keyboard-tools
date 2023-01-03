@@ -36,11 +36,8 @@ def test_correct_layout_no_matrix_predefined(
         span.click()
 
     input_file = selenium.find_element("xpath", "//input[@id='file']")
-    selenium.execute_script(
-        'arguments[0].style = ""; arguments[0].style.display = "block"; arguments[0].style.visibility = "visible";',
-        input_file,
-    )
     input_file.send_keys(layout_file)
+
     download_btn = WebDriverWait(selenium, 60).until(
         ec.element_to_be_clickable((By.XPATH, "//button[@id='download-btn']")), 60
     )
