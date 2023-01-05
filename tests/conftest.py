@@ -79,10 +79,11 @@ def download_dir(request, selenium_data_path):
     yield outputs_path
 
     # cleanup requires workarounds...
-    # if selenium is run inside container, then downloaded png file has different file owner
+    # if selenium is run inside container, then downloaded file file has different file owner
     # than process running tests. The workaround is to run rm in running container.
     container_details = subprocess.run(
-        "docker container ls --all | grep tests_firefox", shell=True, capture_output=True
+        "docker container ls --all | grep 'selenium/standalone-firefox.*tests_firefox_[0-9]\+'",
+        shell=True, capture_output=True
     )
     if container_details.returncode == 0:
         container_id = container_details.stdout.decode().split(" ", 1)[0]
