@@ -2,6 +2,7 @@ import os
 import pytest
 import re
 import time
+import zipfile
 
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -55,7 +56,15 @@ def test_correct_layout_no_matrix_predefined(
     mustend = time.time() + timeout
     while time.time() < mustend:
         if os.path.exists(download_file):
-            return True
+            break
         time.sleep(1)
 
     assert os.path.isfile(download_file)
+
+    with zipfile.ZipFile(download_file, "r") as result:
+        files_in_zip = result.namelist()
+        assert "logs/keyautoplace.log" in files_in_zip
+        expected_in_keyboard_dir = ["sym-lib-table", "keyboard.net", "keyboard.pro", "keyboard.kicad_pcb"]
+        for name in expected_in_keyboard_dir:
+            assert f"keyboard/{name}" in files_in_zip
+
