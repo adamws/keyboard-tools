@@ -122,7 +122,7 @@ jobs:
                   ./deploy/tag.sh
             - add_ssh_keys:
                 fingerprints:
-                  - "45:50:5a:76:8e:65:3f:42:b5:e6:98:22:5c:01:37:de"
+                  - "9d:d0:f6:fc:1e:69:d1:9a:25:8f:f8:9b:cb:9d:6f:18"
             - run:
                 name: Deploy on remote server
                 command: ./deploy/deploy.sh
@@ -133,7 +133,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "57:88:ea:26:a0:1b:ca:92:49:7f:95:ac:59:0a:7f:6f"
+            - "2a:13:57:7d:9e:32:58:f3:19:ac:0c:f8:a7:34:4c:e6"
       - run:
           name: Build and deploy github pages
           working_directory: docs
