@@ -3,6 +3,7 @@ import os
 import pytest
 import subprocess
 
+from PIL import Image
 from selenium import webdriver
 
 
@@ -41,25 +42,59 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="session")
-def selenium_session(selenium_data_path):
+def driver(selenium_data_path):
     options = webdriver.FirefoxOptions()
     options.set_preference("browser.download.folderList", 2)
     options.set_preference("browser.download.manager.showWhenStarting", False)
     options.set_preference("browser.download.useDownloadDir", True)
     options.set_preference("browser.download.dir", f"{selenium_data_path}/downloads")
-    selenium = webdriver.Remote(
-        command_executor='http://localhost:4444/wd/hub',
-        options=options
+    _driver = webdriver.Remote(
+        command_executor="http://localhost:4444/wd/hub", options=options
     )
-    yield selenium
-    selenium.quit()
+    yield _driver
+    _driver.quit()
+
+
+def full_screenshot(driver, tmpdir):
+    total_width = driver.execute_script("return document.body.offsetWidth")
+    total_height = driver.execute_script("return document.body.parentNode.scrollHeight")
+    viewport_height = driver.execute_script("return window.innerHeight")
+
+    stitched_image = Image.new("RGB", (total_width, total_height))
+
+    height_remaining = total_height
+    for part in range(0, int(total_height / viewport_height) + 1):
+        scroll_height = part * viewport_height
+        driver.execute_script(f"window.scrollTo(0, {scroll_height})")
+        file_name = f"{tmpdir}/part_{part}.png"
+
+        driver.get_screenshot_as_file(file_name)
+        screenshot = Image.open(file_name)
+        if screenshot.height > height_remaining:
+            screenshot = screenshot.crop(
+                (
+                    0,
+                    screenshot.height - height_remaining,
+                    screenshot.width,
+                    screenshot.height,
+                )
+            )
+
+        offset = part * viewport_height
+        stitched_image.paste(screenshot, (0, offset))
+
+        height_remaining = height_remaining - screenshot.height
+        del screenshot
+        os.remove(file_name)
+
+    stitched_image.save(f"{tmpdir}/screenshot.png")
 
 
 @pytest.fixture
-def selenium(selenium_session, website, tmpdir):
-    selenium_session.get(website)
-    yield selenium_session
-    selenium_session.save_screenshot(f"{tmpdir}/screenshot.png")
+def selenium(driver, website, tmpdir):
+    driver.get(website)
+    yield driver
+    full_screenshot(driver, tmpdir)
 
 
 def run_command_in_container(container_id, command):
