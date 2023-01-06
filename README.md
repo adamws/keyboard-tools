@@ -5,6 +5,7 @@
 # Keyboard tools
 
 [![Website](https://img.shields.io/website?down_message=offline&up_message=up&url=http%3A%2F%2Fkeyboard-tools.xyz)](http://keyboard-tools.xyz)
+[![CircleCI](https://circleci.com/gh/adamws/keyboard-tools.svg?style=shield)](https://circleci.com/gh/adamws/keyboard-tools/tree/master)
 [![GitHub](https://img.shields.io/github/license/adamws/keyboard-tools)](https://github.com/adamws/keyboard-tools/blob/master/LICENSE)
 
 </div>
