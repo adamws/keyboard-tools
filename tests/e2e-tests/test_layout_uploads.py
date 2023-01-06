@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pytest
@@ -13,6 +14,33 @@ from selenium.webdriver.support import expected_conditions as ec
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def assert_kicad_log(log_file, layout_file):
+    layout = None
+    with open(layout_file) as f:
+        layout = json.loads(f.read())
+
+    # very simplistic parse of keyboard layout file just to get number of keys:
+    number_of_keys = 0
+    for row in layout:
+        for el in row:
+            # strings represents keys
+            if type(el) == str:
+                number_of_keys += 1
+            # other objects represents key properties, don't care about them yet
+
+    # perform basic checks if log looks ok, not ideal because will fail with basic log file format change
+    # but easiest to validate if generated pcb is at least likely to be correct.
+    log_lines = log_file.readlines()
+
+    # check if expected number of keys are placed in log in expected order:
+    next_key = 1
+    for line in log_lines:
+        if f"Setting SW{next_key} module position:" in line.decode("utf-8"):
+            next_key += 1
+
+    assert next_key == number_of_keys + 1
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
@@ -71,7 +99,14 @@ def test_correct_layout_no_matrix_predefined(
     with zipfile.ZipFile(download_file, "r") as result:
         files_in_zip = result.namelist()
         assert "logs/keyautoplace.log" in files_in_zip
-        expected_in_keyboard_dir = ["sym-lib-table", "keyboard.net", "keyboard.pro", "keyboard.kicad_pcb"]
+        expected_in_keyboard_dir = [
+            "sym-lib-table",
+            "keyboard.net",
+            "keyboard.pro",
+            "keyboard.kicad_pcb",
+        ]
         for name in expected_in_keyboard_dir:
             assert f"keyboard/{name}" in files_in_zip
 
+        with result.open("logs/keyautoplace.log") as log_file:
+            assert_kicad_log(log_file, layout_file)
