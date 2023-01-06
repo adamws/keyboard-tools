@@ -1,3 +1,4 @@
+import logging
 import os
 import pytest
 import re
@@ -9,6 +10,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
@@ -38,10 +42,12 @@ def test_correct_layout_no_matrix_predefined(
 
     input_file = selenium.find_element("xpath", "//input[@id='file']")
     input_file.send_keys(layout_file)
+    logger.info("Layout uploaded, started PCB generation")
 
     download_btn = WebDriverWait(selenium, 60).until(
         ec.element_to_be_clickable((By.XPATH, "//button[@id='download-btn']")), 60
     )
+    logger.info("PCB done, downloading")
     download_btn.click()
 
     download_link = selenium.find_element("xpath", "//a[@id='download']")
@@ -58,6 +64,7 @@ def test_correct_layout_no_matrix_predefined(
         if os.path.exists(download_file):
             break
         time.sleep(1)
+    logger.info("Download done")
 
     assert os.path.isfile(download_file)
 
