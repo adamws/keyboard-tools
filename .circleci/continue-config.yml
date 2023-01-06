@@ -15,53 +15,33 @@ parameters:
     default: false
 
 jobs:
-  build:
-    docker:
-      - image: cimg/base:2022.12
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build server docker image
-          command: |
-            export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
-            set +o pipefail
-            docker load -i server-image.tar | true
-            docker build -t ${SERVER_IMAGE} -f deploy/Dockerfile .
-            docker save -o server-image.tar ${SERVER_IMAGE}
-      - run:
-          name: Build worker docker image
-          command: |
-            export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
-            docker build -t ${WORKER_IMAGE} -f kicad-api/Dockerfile kicad-api
-            docker save -o worker-image.tar ${WORKER_IMAGE}
-      - persist_to_workspace:
-          root: .
-          paths:
-           - server-image.tar
-           - worker-image.tar
-  test:
+  build-test-deploy:
     machine:
       image: ubuntu-2004:2022.10.1
     steps:
       - checkout
       - run:
-          name: Install Docker Compose
+          name: Build server docker image
+          command: |
+            export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
+            docker build -t ${SERVER_IMAGE} -f deploy/Dockerfile .
+      - run:
+          name: Build worker docker image
+          command: |
+            export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
+            docker build -t ${WORKER_IMAGE} -f kicad-api/Dockerfile kicad-api
+      - run:
+          name: Install docker Compose
           environment:
             COMPOSE_VERSION: '1.29.2'
           command: |
-            curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o ~/docker-compose
+            curl -L \
+              "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
+              -o ~/docker-compose
             chmod +x ~/docker-compose
             sudo mv ~/docker-compose /usr/local/bin/docker-compose
-      - attach_workspace:
-          at: .
       - run:
-          name: Load docker images
-          command: |
-            docker load -i server-image.tar
-            docker load -i worker-image.tar
-      - run:
-          name: Run tools stack
+          name: Start docker compose for tests
           working_directory: tests
           command: |
             export TAG=circleci
@@ -69,7 +49,7 @@ jobs:
       - restore_cache:
           key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
       - run:
-          name: Install Python deps in a venv
+          name: Install python deps in a venv
           working_directory: tests
           command: |
             python3 -m venv venv
@@ -86,7 +66,7 @@ jobs:
             . venv/bin/activate
             ./wait-for-selenium.sh pytest
       - run:
-          name: Stop tools stack
+          name: Stop docker compose
           working_directory: tests
           command: |
             export TAG=circleci
@@ -95,27 +75,14 @@ jobs:
           path: tests/report.html
       - store_artifacts:
           path: tests/selenium.log
-  deploy-images:
-    docker:
-      - image: cimg/base:2022.12
-    steps:
-      - checkout
-      - setup_remote_docker
       - when: # run only on master when code or deployment scripts changed, do not run when only tests changed:
           condition:
             and:
               - equal: [ master, << pipeline.git.branch >> ]
               - or: [ << pipeline.parameters.run-build-code >>, << pipeline.parameters.run-deploy >> ]
           steps:
-            - attach_workspace:
-                at: .
             - run:
-                name: Load docker images
-                command: |
-                  docker load -i server-image.tar
-                  docker load -i worker-image.tar
-            - run:
-                name: Tag and push Docker images
+                name: Tag and push docker images
                 command: |
                   export TAG=0.1.${CIRCLE_SHA1}
                   echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_LOGIN --password-stdin
@@ -147,23 +114,10 @@ workflows:
         - << pipeline.parameters.run-tests >>
         - << pipeline.parameters.run-deploy >>
     jobs:
-      - build:
+      - build-test-deploy:
           filters:
             branches:
               ignore: gh-pages
-      - test:
-          requires:
-            - build
-      - hold:
-          type: approval
-          requires:
-            - test
-          filters:
-            branches:
-              only: master
-      - deploy-images:
-          requires:
-            - hold
   build-docs:
     when: << pipeline.parameters.run-deploy-docs >>
     jobs:
