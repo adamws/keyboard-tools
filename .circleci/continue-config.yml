@@ -75,6 +75,8 @@ jobs:
           path: tests/report.html
       - store_artifacts:
           path: tests/selenium.log
+      - store_test_results:
+          path: tests/test-results
       - when: # run only on master when code or deployment scripts changed, do not run when only tests changed:
           condition:
             and:
