@@ -12,12 +12,18 @@
 
 ## KiCad project generator
 
+Convert layout from [keyboard-layout-editor](http://www.keyboard-layout-editor.com/) to KiCad project.
+
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - two switch libraries to choose from: [MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid)
   and [keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
 - three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
 - supports basic pre-routing
+
+<div align="center">
+<video src="https://user-images.githubusercontent.com/12676586/211151537-f8073936-38b9-4db1-9f49-ee6022086770.mp4">
+</div>
 
 Detailed documentation available here: [keyboard-tools/kicad-project-generator](https://adamws.github.io/keyboard-tools/kicad-project-generator)
 
