@@ -74,7 +74,7 @@ def generate_kicad_project(task_request):
             state=states.FAILURE,
             meta={
                 "exc_type": type(err).__name__,
-                "exc_message": traceback.format_exc(limit=1),
+                "exc_message": traceback.format_exc(limit=None),
             },
         )
         raise Ignore() from err

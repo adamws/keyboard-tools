@@ -20,9 +20,10 @@
 </template>
 
 <script>
-import axios from 'axios'
-import PcbSettings from '@/components/PcbSettings.vue'
-import * as kle from '@ijprest/kle-serial'
+import { h } from "vue";
+import axios from "axios";
+import PcbSettings from "@/components/PcbSettings.vue";
+import * as kle from "@ijprest/kle-serial";
 
 export default {
   name: 'KicadHandler',
@@ -44,10 +45,41 @@ export default {
     },
     showFailAlert(message) {
       this.setProgressBarFailState();
-      this.$alert(message, "Failed", {
+      this.$alert(message, {
         confirmButtonText: "OK",
         type: "error",
       });
+    },
+    showTaskStatusFailAlert(message) {
+      let stackTrace = message.exc_message
+        .split("\n")
+        .map((line) => h("p", { style: "line-height: normal" }, line.trim()));
+      message = h("p", null, [
+        h(
+          "span",
+          { style: "color: var(--el-color-error); font-weight: bold" },
+          "An unexpected error occurred. "
+        ),
+        h(
+          "span",
+          null,
+          "Please try again. If the error persists, you can submit the issue with the following details at "
+        ),
+        h(
+          "a",
+          { href: "https://github.com/adamws/keyboard-tools/issues/new" },
+          "GitHub"
+        ),
+        h("span", null, ":"),
+        h(
+          "p",
+          {
+            style: "margin-top: 10px; font-family: monospace; font-size: small",
+          },
+          stackTrace
+        ),
+      ]);
+      this.showFailAlert(message);
     },
     triggerUpload() {
       this.taskStatus = null;
@@ -72,7 +104,7 @@ export default {
                if (this.taskStatus === "SUCCESS") {
                  this.getTaskRender();
                } else {
-                 this.showFailAlert(res.data.task_result);
+                 this.showTaskStatusFailAlert(res.data.task_result);
                }
                clearInterval(this.polling);
              }

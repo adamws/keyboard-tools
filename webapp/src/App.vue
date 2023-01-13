@@ -77,13 +77,18 @@ code {
   background-color: #b3e6ff;
 }
 
-
-.el-header, .el-footer {
+.el-header,
+.el-footer {
   text-align: center;
+}
+
+.el-message-box {
+  max-width: fit-content;
+  margin-right: 5%;
+  margin-left: 5%;
 }
 
 a {
   text-decoration: none;
 }
-
 </style>
