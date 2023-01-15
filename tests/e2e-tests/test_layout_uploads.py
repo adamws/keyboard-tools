@@ -44,15 +44,11 @@ def assert_kicad_log(log_file, layout_file):
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
-@pytest.mark.parametrize(
-    "library", ["perigoso/keyswitch-kicad-library", "ai03-2725/MX_Alps_Hybrid"]
-)
 @pytest.mark.parametrize("footprint", ["MX", "Alps", "MX/Alps Hybrid"])
 @pytest.mark.parametrize("routing", ["Disabled", "Full"])
 @pytest.mark.parametrize("controller_circuit", ["None", "ATmega32U4"])
 def test_correct_layout_no_matrix_predefined(
     layout,
-    library,
     footprint,
     routing,
     controller_circuit,
@@ -64,7 +60,7 @@ def test_correct_layout_no_matrix_predefined(
     test_dir, _ = os.path.splitext(filename)
     layout_file = f"{test_dir}/{layout}.json"
 
-    for option in [library, footprint, routing, controller_circuit]:
+    for option in [footprint, routing, controller_circuit]:
         span = selenium.find_element("xpath", f"//span[text()='{option}']")
         span.click()
 

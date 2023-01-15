@@ -25,7 +25,7 @@ def prepare_project(project_full_path, project_name, switch_library):
         "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
     )
     if switch_library == "perigoso/keyswitch-kicad-library":
-        prefix = "${KIPRJMOD}/libs/keyswitch-kicad-library/modules"
+        prefix = "${KIPRJMOD}/libs/keyswitch-kicad-library/footprints"
         fp_lib_table = tm.render(
             fp_libs=[
                 f'(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri {prefix}/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
@@ -39,17 +39,7 @@ def prepare_project(project_full_path, project_name, switch_library):
             f"{project_full_path}/libs/keyswitch-kicad-library",
         )
     else:
-        prefix = "${KIPRJMOD}/libs/MX_Alps_Hybrid"
-        fp_lib_table = tm.render(
-            fp_libs=[
-                f'(lib (name MX_Only)(type KiCad)(uri {prefix}/MX_Only.pretty)(options "")(descr ""))'
-                f'(lib (name Alps_Only)(type KiCad)(uri {prefix}/Alps_Only.pretty)(options "")(descr ""))'
-                f'(lib (name MX_Alps_Hybrid)(type KiCad)(uri {prefix}/MX_Alps_Hybrid.pretty)(options "")(descr ""))'
-            ]
-        )
-        shutil.copytree(
-            "switch-libs/MX_Alps_Hybrid", f"{project_full_path}/libs/MX_Alps_Hybrid"
-        )
+        raise Exception("Unsupported switch library")
 
     with open(f"{project_full_path}/fp-lib-table", "w") as f:
         f.write(fp_lib_table)

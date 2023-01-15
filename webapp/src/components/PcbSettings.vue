@@ -8,14 +8,6 @@
     </el-col>
   </el-row>
   <el-row>
-    <el-col class="setting-name" :span="4">Library:</el-col>
-    <el-col :span="20">
-      <el-radio-group v-model="switchLibrary">
-        <el-radio v-for="option in switchLibraryOptions" :label="option" :key="option">{{option}}</el-radio>
-      </el-radio-group>
-    </el-col>
-  </el-row>
-  <el-row>
     <el-col class="setting-name" :span="4">Footprints:</el-col>
     <el-col :span="20">
       <el-radio-group v-model="switchFootprint">
@@ -48,7 +40,6 @@ export default {
   data() {
     return {
       matrixOptions: ["Automatic", "Predefined"],
-      switchLibraryOptions: ["perigoso/keyswitch-kicad-library", "ai03-2725/MX_Alps_Hybrid"],
       switchFootprintOptions: ["MX", "Alps", "MX/Alps Hybrid"],
       routingOptions: ["Disabled", "Full"],
       controllerCircuitOptions: ["None", "ATmega32U4"],

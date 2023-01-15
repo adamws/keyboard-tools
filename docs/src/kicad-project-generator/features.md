@@ -21,26 +21,6 @@ Which produces this layout:
 
 ![2x2](./assets/2x2.png)
 
-## Footprint library
-
-User can choose between two footprint libraries: [perigoso/keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
-and [ai03-2725/MX_Alps_Hybrid](https://github.com/ai03-2725/MX_Alps_Hybrid).
-MX_Alps_Hybrid has become de facto standard in mechanical keyboard maker
-community but alternative by perigoso (which is based on ai03-2725 work)
-is being merged to official KiCad footprint library.
-
-There are some slight differences between the two. For example, stabilizer
-mounting holes in perigoso library are not part of switch footprint.
-Also, available key widths are not the same for both.
-
-Nevertheless, this option is mainly personal preference and both choices should
-produce valid PCB.
-
-::: tip
-If there is no footprint available for key in provided layout file, then
-footprint for 1U key will be used instead.
-:::
-
 ## Switch footprint
 
 Three footprint types are supported: Cherry MX, Alps and Cherry MX/Alps hybrid.
