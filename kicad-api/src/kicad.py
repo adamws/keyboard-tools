@@ -85,7 +85,8 @@ def generate_netlist(
 ):
     project_libs = "/usr/share/kicad/library"
 
-    kle2netlist_log = open(f"{project_full_path}/../logs/kle2netlist.log", "w")
+    kle2netlist_log_path = f"{project_full_path}/../logs/kle2netlist.log"
+    kle2netlist_log = open(kle2netlist_log_path, "w")
 
     args = [
             "kle2netlist",
@@ -112,7 +113,12 @@ def generate_netlist(
     )
     p.communicate()
     if p.returncode != 0:
-        raise Exception("Generate netlist failed")
+        log = ""
+        with open(kle2netlist_log_path, "r") as file:
+            log = file.read()
+        raise Exception(f"Generate netlist failed: details: {log}")
+
+    kle2netlist_log.close()
 
 
 def generate_pcb_file(project_full_path, project_name):
@@ -121,7 +127,8 @@ def generate_pcb_file(project_full_path, project_name):
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
-    kicad_pcb_log = open(f"{project_full_path}/../logs/kinet2pcb.log", "w")
+    kicad_pcb_log_path = f"{project_full_path}/../logs/kinet2pcb.log"
+    kicad_pcb_log = open(kicad_pcb_log_path, "w")
 
     p = subprocess.Popen(
         ["kinet2pcb", "-w", "-nb", "-i", f"{project_name}.net"],
@@ -131,8 +138,14 @@ def generate_pcb_file(project_full_path, project_name):
         stderr=subprocess.STDOUT,
     )
     p.communicate()
+
     if p.returncode != 0:
-        raise Exception("Generate .kicad_pcb from netlist failed")
+        log = ""
+        with open(kicad_pcb_log_path, "r") as file:
+            log = file.read()
+        raise Exception(f"Generate .kicad_pcb from netlist failed: details: {log}")
+
+    kicad_pcb_log.close()
 
 
 def run_element_placement(project_full_path, project_name, layout_file, settings):
@@ -141,7 +154,8 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
-    keyautoplace_log = open(f"{project_full_path}/../logs/keyautoplace.log", "w")
+    keyautoplace_log_path = f"{project_full_path}/../logs/keyautoplace.log"
+    keyautoplace_log = open(keyautoplace_log_path, "w")
 
     keyautoplace_args = [
         "python3",
@@ -165,7 +179,12 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
     )
     p.communicate()
     if p.returncode != 0:
-        raise Exception("Switch placement failed")
+        log = ""
+        with open(keyautoplace_log_path, "r") as file:
+            log = file.read()
+        raise Exception(f"Switch placement failed: details: {log}")
+
+    keyautoplace_log.close()
 
 
 def add_edge_cuts(project_full_path, project_name):
@@ -242,7 +261,8 @@ def generate_render(project_full_path, project_name):
     except Exception as err:
         raise Exception("Removing modules before render generation failed") from err
 
-    pcbdraw_log = open(f"{project_full_path}/../logs/pcbdraw.log", "w")
+    pcbdraw_log_path = f"{project_full_path}/../logs/pcbdraw.log"
+    pcbdraw_log = open(pcbdraw_log_path, "w")
     p = subprocess.Popen(
         [
             "pcbdraw",
@@ -257,8 +277,12 @@ def generate_render(project_full_path, project_name):
     )
     p.communicate()
     if p.returncode != 0:
-        raise Exception("Preview render failed")
+        log = ""
+        with open(pcbdraw_log_path, "r") as file:
+            log = file.read()
+        raise Exception(f"Preview render failed: details: {log}")
 
+    pcbdraw_log.close()
     os.remove(pcb_for_render)
 
 
