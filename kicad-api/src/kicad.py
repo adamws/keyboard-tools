@@ -47,27 +47,12 @@ def prepare_project(project_full_path, project_name, switch_library):
     with open(f"{project_full_path}/{project_name}.kicad_pcb", "w") as f:
         f.write('(kicad_pcb (version 4) (host kicad "dummy file") )')
 
-    with open(f"{project_full_path}/{project_name}.pro", "w") as f:
-        timestamp = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        f.write(f"update={timestamp}\n")
-        f.write("version=1\n")
-        f.write("last_client=kicad\n")
-        f.write("[general]\n")
-        f.write("version=1\n")
-        f.write("RootSch=\n")
-        f.write("BoardNm=\n")
-        f.write("[pcbnew]\n")
-        f.write("version=1\n")
-        f.write("LastNetListRead=\n")
-        f.write("UseCmpFile=1\n")
-        f.write("[cvpcb]\n")
-        f.write("version=1\n")
-        f.write("NetIExt=net\n")
-        f.write("[eeschema]\n")
-        f.write("version=1\n")
-        f.write("LibDir=\n")
-        f.write("[keyboard-tools]\n")
-        f.write("url=keyboard-tools.xyz\n")
+    file_path = os.path.dirname(os.path.realpath(__file__))
+    with open(f"{file_path}/keyboard.kicad_pro.template", "r") as f:
+        template = Template(f.read())
+        result = template.render(project_name = project_name)
+        with open(f"{project_full_path}/{project_name}.kicad_pro", "w") as f:
+            f.write(result)
 
 
 def generate_netlist(
@@ -114,6 +99,7 @@ def generate_netlist(
 def generate_pcb_file(project_full_path, project_name):
     env = os.environ.copy()
     env["KIPRJMOD"] = project_full_path
+    env["KICAD6_FOOTPRINT_DIR"] = "/usr/share/kicad/footprints"
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
@@ -144,37 +130,42 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
-    keyautoplace_log_path = f"{project_full_path}/../logs/keyautoplace.log"
-    keyautoplace_log = open(keyautoplace_log_path, "w")
+    kbplacer_log_path = f"{project_full_path}/../logs/kbplacer.log"
+    kbplacer_log = open(kbplacer_log_path, "w")
 
-    keyautoplace_args = [
+    home_directory = Path.home()
+    workdir = f"{home_directory}/.local/share/kicad/6.0/3rdparty/plugins"
+    package_name = "com_github_adamws_kicad-kbplacer"
+    kbplacer_args = [
         "python3",
-        ".kicad/scripting/plugins/keyautoplace.py",
+        "-m",
+        package_name,
         "-l",
         layout_file,
         "-b",
         pcb_path,
     ]
     if settings["routing"] == "Full":
-        keyautoplace_args.append("--route")
+        kbplacer_args.append("--route")
     if settings["controllerCircuit"] == "ATmega32U4":
-        keyautoplace_args.append("-t")
-        keyautoplace_args.append(str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")))
+        kbplacer_args.append("-t")
+        kbplacer_args.append(str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")))
 
     p = subprocess.Popen(
-        keyautoplace_args,
+        kbplacer_args,
+        cwd = workdir,
         env=env,
-        stdout=keyautoplace_log,
+        stdout=kbplacer_log,
         stderr=subprocess.STDOUT,
     )
     p.communicate()
     if p.returncode != 0:
         log = ""
-        with open(keyautoplace_log_path, "r") as file:
+        with open(kbplacer_log_path, "r") as file:
             log = file.read()
         raise Exception(f"Switch placement failed: details: {log}")
 
-    keyautoplace_log.close()
+    kbplacer_log.close()
 
 
 def add_edge_cuts(project_full_path, project_name):
@@ -182,9 +173,9 @@ def add_edge_cuts(project_full_path, project_name):
     try:
         board = pcbnew.LoadBoard(pcb_path)
         positions = [
-            module.GetPosition()
-            for module in board.GetModules()
-            if re.match(r"^SW\d+$", module.GetReference())
+            footprint.GetPosition()
+            for footprint in board.GetFootprints()
+            if re.match(r"^SW\d+$", footprint.GetReference())
         ]
         xvals = [position.x for position in positions]
         yvals = [position.y for position in positions]
@@ -201,7 +192,8 @@ def add_edge_cuts(project_full_path, project_name):
         for i in range(len(corners)):
             start = corners[i]
             end = corners[(i + 1) % len(corners)]
-            segment = pcbnew.DRAWSEGMENT(board)
+            segment = pcbnew.PCB_SHAPE(board)
+            segment.SetShape(pcbnew.SHAPE_T_SEGMENT)
             segment.SetLayer(pcbnew.Edge_Cuts)
             segment.SetStart(start)
             segment.SetEnd(end)
@@ -228,34 +220,31 @@ def generate_render(project_full_path, project_name):
 
     try:
         board = pcbnew.LoadBoard(pcb_for_render)
-        module = board.GetModules().GetFirst()
-        while module:
-            current_module = module
-            reference = current_module.GetReference()
-            module = current_module.Next()
+        footprints = board.GetFootprints()
+        for footprint in footprints:
+            reference = footprint.GetReference()
             if not re.match(r"^(SW|D)\d+$", reference):
-                board.Delete(current_module)
+                board.Delete(footprint)
 
         # include only collumn/row tracks in render in case
         # there are microcontroller circuit tracks present
-        track = board.GetTracks().GetFirst()
-        while track:
-            current_track = track
-            name = current_track.GetNetname()
-            track = track.Next()
+        tracks = board.GetTracks()
+        for track in tracks:
+            name = track.GetNetname()
             if not re.match(r"^(ROW|COL|N\$)\d+$", name):
-                board.Delete(current_track)
+                board.Delete(track)
 
         pcbnew.Refresh()
         pcbnew.SaveBoard(pcb_for_render, board)
     except Exception as err:
-        raise Exception("Removing modules before render generation failed") from err
+        raise Exception("Removing footprints before render generation failed") from err
 
     pcbdraw_log_path = f"{project_full_path}/../logs/pcbdraw.log"
     pcbdraw_log = open(pcbdraw_log_path, "w")
     p = subprocess.Popen(
         [
             "pcbdraw",
+            "plot",
             "--filter",
             '""',
             pcb_for_render,

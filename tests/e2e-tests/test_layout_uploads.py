@@ -37,7 +37,7 @@ def assert_kicad_log(log_file, layout_file):
     # check if expected number of keys are placed in log in expected order:
     next_key = 1
     for line in log_lines:
-        if f"Setting SW{next_key} module position:" in line.decode("utf-8"):
+        if f"Setting SW{next_key} footprint position:" in line.decode("utf-8"):
             next_key += 1
 
     assert next_key == number_of_keys + 1
@@ -94,15 +94,15 @@ def test_correct_layout_no_matrix_predefined(
 
     with zipfile.ZipFile(download_file, "r") as result:
         files_in_zip = result.namelist()
-        assert "logs/keyautoplace.log" in files_in_zip
+        assert "logs/kbplacer.log" in files_in_zip
         expected_in_keyboard_dir = [
             "sym-lib-table",
             "keyboard.net",
-            "keyboard.pro",
+            "keyboard.kicad_pro",
             "keyboard.kicad_pcb",
         ]
         for name in expected_in_keyboard_dir:
             assert f"keyboard/{name}" in files_in_zip
 
-        with result.open("logs/keyautoplace.log") as log_file:
+        with result.open("logs/kbplacer.log") as log_file:
             assert_kicad_log(log_file, layout_file)

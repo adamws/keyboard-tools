@@ -2,6 +2,6 @@ celery==5.2.7
 flask==2.2.2
 kinet2pcb==1.1.0
 minio==7.1.13
-PcbDraw==0.6.1
+PcbDraw==1.0.1
 redis==4.4.2
-git+https://github.com/adamws/kle2netlist@v0.1
+git+https://github.com/adamws/kle2netlist@kicad6

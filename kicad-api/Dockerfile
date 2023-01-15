@@ -1,4 +1,4 @@
-FROM admwscki/kicad-kbplacer:0.1.48a297d8365797c2a3ed3cebcf7d7548658a7779
+FROM admwscki/kicad-kbplacer:0.2
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
@@ -11,7 +11,7 @@ RUN mkdir switch-libs \
 
 RUN mkdir templates \
   && cd templates \
-  && wget https://raw.githubusercontent.com/adamws/kle2netlist/master/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
+  && wget https://raw.githubusercontent.com/adamws/kle2netlist/kicad6/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
 
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
