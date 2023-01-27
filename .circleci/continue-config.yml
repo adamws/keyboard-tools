@@ -14,6 +14,7 @@ parameters:
     type: boolean
     default: false
 
+
 jobs:
   build-test-deploy:
     machine:
@@ -77,24 +78,43 @@ jobs:
           path: tests/selenium.log
       - store_test_results:
           path: tests/test-results
-      - when: # run only on master when code or deployment scripts changed, do not run when only tests changed:
+      - when: # run only on master or tag when code or deployment scripts changed, do not run when only tests changed:
           condition:
             and:
-              - equal: [ master, << pipeline.git.branch >> ]
+              - or:
+                - << pipeline.git.tag >>
+                - equal: [ master, << pipeline.git.branch >> ]
               - or: [ << pipeline.parameters.run-build-code >>, << pipeline.parameters.run-deploy >> ]
           steps:
             - run:
+                name: Export tag value
+                environment:
+                  GIT_BRANCH: << pipeline.git.branch >>
+                  GIT_TAG: << pipeline.git.tag >>
+                command: |
+                  if [ -z "$GIT_TAG" ]; then
+                    # master branch
+                    echo "export TAG=0.0.${CIRCLE_SHA1}" >> $BASH_ENV
+                  else
+                    # tag branch, cut 'v' prefix (only v prefixed tags should trigger this job)
+                    echo "export TAG=$(echo $GIT_TAG | cut -c 2-)" >> $BASH_ENV
+                  fi
+            - run:
                 name: Tag and push docker images
                 command: |
-                  export TAG=0.1.${CIRCLE_SHA1}
                   echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_LOGIN --password-stdin
                   ./deploy/tag.sh
+      - when:
+          condition:
+            << pipeline.git.tag >>
+          steps:
             - add_ssh_keys:
                 fingerprints:
                   - "9d:d0:f6:fc:1e:69:d1:9a:25:8f:f8:9b:cb:9d:6f:18"
             - run:
                 name: Deploy on remote server
-                command: ./deploy/deploy.sh
+                command: |
+                  ./deploy/deploy.sh
   deploy-docs:
     docker:
       - image: cimg/node:15.14.0
@@ -108,6 +128,7 @@ jobs:
           working_directory: docs
           command: ./deploy.sh
 
+
 workflows:
   build-test-deploy:
     when:
@@ -120,6 +141,8 @@ workflows:
           filters:
             branches:
               ignore: gh-pages
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
   build-docs:
     when: << pipeline.parameters.run-deploy-docs >>
     jobs:

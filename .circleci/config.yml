@@ -4,13 +4,16 @@ setup: true
 
 orbs:
   path-filtering: circleci/path-filtering@0.1.3
+  continuation: circleci/continuation@0.3.1
 
-workflows:
-  generate-config:
-    jobs:
-      - path-filtering/filter:
+
+jobs:
+  default-configuration:
+    executor: path-filtering/default
+    steps:
+      - checkout
+      - path-filtering/set-parameters:
           base-revision: master
-          config-path: .circleci/continue-config.yml
           mapping: |
             deploy/.* run-deploy true
             kicad-api/.* run-build-code true
@@ -18,3 +21,36 @@ workflows:
             webapp/.* run-build-code true
             tests/.* run-tests true
             docs/.* run-deploy-docs true
+      - run:
+          name: Print continuation parameters
+          command: |
+            cat /tmp/pipeline-parameters.json
+      - continuation/continue:
+          configuration_path: .circleci/continue-config.yml
+          parameters: /tmp/pipeline-parameters.json
+  tags-only-configuration:
+    executor: continuation/default
+    steps:
+      - checkout
+      - run:
+          name: Set continuation parameters
+          command: |
+            echo "{\"run-build-code\": true}" >> /tmp/pipeline-parameters.json
+      - continuation/continue:
+          configuration_path: .circleci/continue-config.yml
+          parameters: /tmp/pipeline-parameters.json
+
+
+workflows:
+  setup:
+    jobs:
+      - default-configuration:
+          filters:
+            branches:
+              ignore: gh-pages
+      - tags-only-configuration:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
