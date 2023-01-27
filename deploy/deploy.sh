@@ -9,7 +9,9 @@ if [ -z "$(ssh-keygen -F $SSH_HOST)" ]; then
 fi
 
 scp deploy/docker-compose.yml deploy/production.env $SSH_USER@$SSH_HOST:/home/$SSH_USER/app
-ssh $SSH_USER@$SSH_HOST <<'EOL'
+ssh $SSH_USER@$SSH_HOST << EOF
     cd app
-    docker-compose up -d
-EOL
+    docker-compose down -v --rmi="all"
+    TAG=$TAG docker-compose pull
+    TAG=$TAG docker-compose up -d --force-recreate --renew-anon-volumes
+EOF
