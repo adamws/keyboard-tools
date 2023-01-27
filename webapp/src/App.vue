@@ -16,6 +16,7 @@
       </el-main>
       <el-footer>
           <div><a href="https://github.com/adamws/keyboard-tools"><img :src="githubIcon"/></a></div>
+          <div style="font-size: var(--el-font-size-extra-small)">version {{ version }}</div>
       </el-footer>
     </el-container>
   </div>
@@ -30,6 +31,7 @@ export default {
     return {
       logo: logo,
       githubIcon: githubIcon,
+      version: __APP_VERSION__,
     };
   },
 };

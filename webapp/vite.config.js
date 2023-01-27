@@ -18,4 +18,7 @@ export default defineConfig({
     alias: [{ find: "@", replacement: path.resolve(__dirname, "src") }],
   },
   plugins: [vue()],
+  define: {
+    '__APP_VERSION__': JSON.stringify(process.env.npm_package_version),
+  }
 });
