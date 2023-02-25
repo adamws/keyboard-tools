@@ -65,7 +65,7 @@ jobs:
           working_directory: tests
           command: |
             . venv/bin/activate
-            ./wait-for-selenium.sh pytest
+            ./wait-for-selenium.sh pytest --junitxml=test-results/pytest/results.xml
       - run:
           name: Stop docker compose
           working_directory: tests
