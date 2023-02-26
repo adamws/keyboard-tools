@@ -113,3 +113,21 @@ def test_correct_layout_no_matrix_predefined(
 
         with result.open("logs/kbplacer.log") as log_file:
             assert_kicad_log(log_file, layout_file)
+
+
+def test_incorrect_layout_expect_error_window(tmpdir, selenium):
+    layout_file = f"{tmpdir}/incorrect_layout.json"
+    with open(layout_file, "w") as f:
+        f.write("someunexpectedstuff")
+    input_file = selenium.find_element("xpath", "//input[@id='file']")
+    input_file.send_keys(layout_file)
+    logger.info("Layout uploaded, started PCB generation")
+
+    # expect message box with button
+    button = WebDriverWait(selenium, 5).until(
+        ec.element_to_be_clickable(
+            (By.XPATH, "//*[@class='el-message-box__btns']/button")
+        )
+    )
+    assert button
+    assert not ("download-btn" in button.get_attribute("id"))
