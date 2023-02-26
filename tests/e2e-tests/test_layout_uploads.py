@@ -68,11 +68,18 @@ def test_correct_layout_no_matrix_predefined(
     input_file.send_keys(layout_file)
     logger.info("Layout uploaded, started PCB generation")
 
-    download_btn = WebDriverWait(selenium, 60).until(
-        ec.element_to_be_clickable((By.XPATH, "//button[@id='download-btn']")), 60
+    button = WebDriverWait(selenium, 60).until(
+        ec.any_of(
+            ec.element_to_be_clickable((By.XPATH, "//button[@id='download-btn']")),
+            ec.element_to_be_clickable(
+                (By.XPATH, "//*[@class='el-message-box__btns']/button")
+            ),
+        )
     )
+    assert "download-btn" in button.get_attribute("id")
+
     logger.info("PCB done, downloading")
-    download_btn.click()
+    button.click()
 
     download_link = selenium.find_element("xpath", "//a[@id='download']")
     link = download_link.get_attribute("href")
