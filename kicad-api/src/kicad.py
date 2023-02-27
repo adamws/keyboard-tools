@@ -99,7 +99,7 @@ def generate_netlist(
 def generate_pcb_file(project_full_path, project_name):
     env = os.environ.copy()
     env["KIPRJMOD"] = project_full_path
-    env["KICAD6_FOOTPRINT_DIR"] = "/usr/share/kicad/footprints"
+    env["KICAD7_FOOTPRINT_DIR"] = "/usr/share/kicad/footprints"
 
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
@@ -134,7 +134,7 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
     kbplacer_log = open(kbplacer_log_path, "w")
 
     home_directory = Path.home()
-    workdir = f"{home_directory}/.local/share/kicad/6.0/3rdparty/plugins"
+    workdir = f"{home_directory}/.local/share/kicad/7.0/3rdparty/plugins"
     package_name = "com_github_adamws_kicad-kbplacer"
     kbplacer_args = [
         "python3",
@@ -195,8 +195,8 @@ def add_edge_cuts(project_full_path, project_name):
             segment = pcbnew.PCB_SHAPE(board)
             segment.SetShape(pcbnew.SHAPE_T_SEGMENT)
             segment.SetLayer(pcbnew.Edge_Cuts)
-            segment.SetStart(start)
-            segment.SetEnd(end)
+            segment.SetStart(pcbnew.VECTOR2I(start))
+            segment.SetEnd(pcbnew.VECTOR2I(end))
             board.Add(segment)
 
         pcbnew.Refresh()
