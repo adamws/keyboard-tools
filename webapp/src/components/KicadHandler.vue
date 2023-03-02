@@ -137,6 +137,23 @@ export default {
           return;
         }
 
+        if (keyboard.keys.length > 150) {
+          let message = h("p", null, [
+            h(
+              "p",
+              { style: "color: var(--el-color-error); font-weight: bold" },
+              "Layouts exceeding 150 keys not supported."
+            ),
+            h(
+              "p",
+              null,
+              "Sorry, we are unable to process your request. This keyboard is too big and could overload our server."
+            ),
+          ]);
+          this.showFailAlert(message);
+          return;
+        }
+
         this.$refs.pcbSettings.getSettings();
 
         axios.post(`${this.apiEndpoint}`, {"layout": keyboard, "settings": this.pcbSettings})

@@ -168,6 +168,11 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if (len(request.Layout.Keys) > 150) {
+			sendErr(w, http.StatusBadRequest, "Layout exceeds 150 key size limitation")
+			return
+		}
+
 		// validate request body and modify if needed
 		if request.Settings.MatrixOption == "Predefined" {
 			if !areKeysAnnotated(request.Layout.Keys) {
