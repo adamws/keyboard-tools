@@ -61,7 +61,7 @@ def test_correct_layout_no_matrix_predefined(
     layout_file = f"{test_dir}/{layout}.json"
 
     for option in [footprint, routing, controller_circuit]:
-        span = selenium.find_element("xpath", f"//span[text()='{option}']")
+        span = selenium.find_element("xpath", f"//span[contains(.,'{option}')]")
         span.click()
 
     input_file = selenium.find_element("xpath", "//input[@id='file']")
