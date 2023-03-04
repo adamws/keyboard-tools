@@ -11,6 +11,7 @@
     "format": "prettier . --write"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.0.10",
     "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial.git",
     "acorn": "^8.8.1",
     "axios": "^1.2.1",

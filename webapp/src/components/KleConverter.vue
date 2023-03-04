@@ -1,6 +1,7 @@
 <script setup>
 import { reactive } from "vue";
 import { ElMessageBox } from "element-plus";
+import { UploadFilled } from "@element-plus/icons-vue";
 import { PrismEditor } from "vue-prism-editor";
 import FileSaver from "file-saver";
 import * as kle from "@ijprest/kle-serial";
@@ -74,9 +75,9 @@ function getConvertedLayout() {
   </div>
   <br />
   <div>
-    <el-button type="primary" @click="triggerUpload"
-      >Upload layout <i class="el-icon-upload el-icon-right"></i
-    ></el-button>
+    <el-button type="primary" @click="triggerUpload" :icon="UploadFilled">
+      Upload layout
+    </el-button>
     <input
       type="file"
       id="file"
