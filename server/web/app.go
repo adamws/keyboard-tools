@@ -108,7 +108,7 @@ func (a *App) Serve() error {
 
 	router.HandleFunc("/api/pcb", kicadPostNewTask)
 	router.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
-	router.HandleFunc("/api/pcb/{task_id}/render", kicadGetTaskRender).Methods("GET")
+	router.HandleFunc("/api/pcb/{task_id}/render/{side}", kicadGetTaskRender).Methods("GET")
 	router.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
 	router.PathPrefix("/").HandlerFunc(http.FileServer(http.Dir("/webapp")).ServeHTTP)
@@ -224,10 +224,11 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 func (a *App) KicadGetTaskRender(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	taskId := vars["task_id"]
+	side := vars["side"]
 
 	reqParams := make(url.Values)
 
-	objectName := fmt.Sprintf("%s/front.svg", taskId)
+	objectName := fmt.Sprintf("%s/%s.svg", taskId, side)
 	a.MinioPresignedUrlProxy(objectName, reqParams)(w, r)
 }
 

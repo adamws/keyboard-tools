@@ -6,9 +6,9 @@ import shutil
 import subprocess
 import pcbnew
 
-from pathlib import Path
-
 from jinja2 import Template
+from pathlib import Path
+from pcbdraw.plot import PcbPlotter
 
 
 def prepare_project(project_full_path, project_name, switch_library):
@@ -206,62 +206,44 @@ def add_edge_cuts(project_full_path, project_name):
 
 
 def generate_render(project_full_path, project_name):
-    env = os.environ.copy()
-    env["KIPRJMOD"] = project_full_path
-
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
-    # render is performed on copy of pcb from which all parts except
-    # switches and diodes were removed. This is due to microcontroller circuit
-    # which may be present but its placement is outside board outline
+    # render is performed on copy of pcb from which all parts outside board edge
+    # were removed. This is due to microcontroller circuit which may be present
+    # but its placement is outside board outline
     pcb_for_render = f"{project_full_path}/{project_name}_render.kicad_pcb"
 
     shutil.copyfile(pcb_path, pcb_for_render)
 
     try:
         board = pcbnew.LoadBoard(pcb_for_render)
-        footprints = board.GetFootprints()
-        for footprint in footprints:
-            reference = footprint.GetReference()
-            if not re.match(r"^(SW|D)\d+$", reference):
-                board.Delete(footprint)
+        bbox = board.GetBoardEdgesBoundingBox()
+        # assuming that there are no other elements than footprints and tracks on
+        # controller circuit template (which is a case for now)
+        for elem in board.GetFootprints():
+            if not bbox.Contains(elem.GetPosition()):
+                board.RemoveNative(elem)
+        for elem in board.GetTracks():
+            if not bbox.Contains(elem.GetPosition()):
+                board.RemoveNative(elem)
 
-        # include only collumn/row tracks in render in case
-        # there are microcontroller circuit tracks present
-        tracks = board.GetTracks()
-        for track in tracks:
-            name = track.GetNetname()
-            if not re.match(r"^(ROW|COL|N\$)\d+$", name):
-                board.Delete(track)
-
-        pcbnew.Refresh()
         pcbnew.SaveBoard(pcb_for_render, board)
     except Exception as err:
         raise Exception("Removing footprints before render generation failed") from err
 
-    pcbdraw_log_path = f"{project_full_path}/../logs/pcbdraw.log"
-    pcbdraw_log = open(pcbdraw_log_path, "w")
-    p = subprocess.Popen(
-        [
-            "pcbdraw",
-            "plot",
-            "--filter",
-            '""',
-            pcb_for_render,
-            f"{project_full_path}/../logs/front.svg",
-        ],
-        env=env,
-        stdout=pcbdraw_log,
-        stderr=subprocess.STDOUT,
-    )
-    p.communicate()
-    if p.returncode != 0:
-        log = ""
-        with open(pcbdraw_log_path, "r") as file:
-            log = file.read()
-        raise Exception(f"Preview render failed: details: {log}")
+    plotter = PcbPlotter(pcb_for_render)
+    plotter.setup_arbitrary_data_path(".")
+    plotter.setup_env_data_path()
+    plotter.setup_builtin_data_path()
+    plotter.setup_global_data_path()
 
-    pcbdraw_log.close()
+    image = plotter.plot()
+    image.write(f"{project_full_path}/../logs/front.svg")
+
+    plotter.render_back = True
+    image = plotter.plot()
+    image.write(f"{project_full_path}/../logs/back.svg")
+
     os.remove(pcb_for_render)
 
 

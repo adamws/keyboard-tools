@@ -3,6 +3,7 @@ import { h, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { UploadFilled } from "@element-plus/icons-vue";
 import axios from "axios";
+import PcbRender from "@/components/PcbRender.vue";
 import PcbSettings from "@/components/PcbSettings.vue";
 import * as kle from "@ijprest/kle-serial";
 
@@ -14,7 +15,7 @@ const state = reactive({
   polling: null,
   progressBarStatus: "",
   progressBarPercentage: 0,
-  svgData: "",
+  svgSource: "",
 });
 
 const pcbSettingsRef = ref(null);
@@ -63,17 +64,13 @@ function triggerUpload() {
   state.taskStatus = "";
   state.progressBarStatus = "";
   state.progressBarPercentage = 0;
-  state.svgData = "";
+  state.svgSource = "";
   document.getElementById("file").click();
 }
 
 function setProgressBarFailState() {
   state.progressBarPercentage = 100;
   state.progressBarStatus = "exception";
-}
-
-function getTaskRender() {
-  state.svgData = `${apiEndpoint}/${state.taskId}/render`;
 }
 
 function getTaskStatus() {
@@ -84,7 +81,7 @@ function getTaskStatus() {
       state.progressBarPercentage = res.data.task_result.percentage;
       if (state.taskStatus !== "PENDING" && state.taskStatus !== "PROGRESS") {
         if (state.taskStatus === "SUCCESS") {
-          getTaskRender();
+          state.svgSource = `${apiEndpoint}/${state.taskId}/render`;
         } else {
           showTaskStatusFailAlert(res.data.task_result);
         }
@@ -199,10 +196,7 @@ function uploadLayout() {
   </div>
   <br />
   <div>
-    <img
-      style="width: 100%; height: 100%"
-      :src="state.svgData"
-      v-if="state.svgData !== ''" />
+    <PcbRender :source="state.svgSource" />
     <a
       id="download"
       v-bind:href="getResultUrl()"

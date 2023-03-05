@@ -55,12 +55,13 @@ def __upload_to_storage(task_id, log_path):
     client.fput_object(
         bucket_name, f"{task_id}/{task_id}.zip", f"{home}/{task_id}.zip"
     )
-    client.fput_object(
-        bucket_name,
-        f"{task_id}/front.svg",
-        f"{log_path}/front.svg",
-        content_type="image/svg+xml",
-    )
+    for side in ["front", "back"]:
+        client.fput_object(
+            bucket_name,
+            f"{task_id}/{side}.svg",
+            f"{log_path}/{side}.svg",
+            content_type="image/svg+xml",
+        )
 
 
 @celery.task(name="generate_kicad_project")
