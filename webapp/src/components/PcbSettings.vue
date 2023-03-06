@@ -28,26 +28,35 @@ defineExpose({ getSettings });
   <el-row>
     <el-col class="setting-name" :span="4">Matrix:</el-col>
     <el-col v-for="option in matrixOptions" :span="3">
-      <el-radio v-model="matrixOption" :label="option" :key="option">{{option}}</el-radio>
+      <el-radio v-model="matrixOption" :label="option" :key="option">{{
+        option
+      }}</el-radio>
     </el-col>
   </el-row>
   <el-row>
     <el-col class="setting-name" :span="4">Footprints:</el-col>
     <el-col v-for="option in switchFootprintOptions" :span="3">
-      <el-radio v-model="switchFootprint" :label="option" :key="option">{{option}}</el-radio>
+      <el-radio v-model="switchFootprint" :label="option" :key="option">{{
+        option
+      }}</el-radio>
     </el-col>
   </el-row>
   <el-row>
     <el-col class="setting-name" :span="4">Routing:</el-col>
     <el-col v-for="option in routingOptions" :span="3">
-      <el-radio v-model="routingOption" :label="option" :key="option">{{option}}</el-radio>
+      <el-radio v-model="routingOption" :label="option" :key="option">{{
+        option
+      }}</el-radio>
     </el-col>
   </el-row>
   <el-row>
     <el-col class="setting-name" :span="4">Controller circuit:</el-col>
     <el-col v-for="option in controllerCircuitOptions" :span="3">
       <el-radio v-model="controllerCircuit" :label="option" :key="option">
-        {{option}} <span v-if="option != 'None'" style="color:#E6A23C;"> (experimental)</span>
+        {{ option }}
+        <span v-if="option != 'None'" style="color: #e6a23c">
+          (experimental)</span
+        >
       </el-radio>
     </el-col>
   </el-row>
