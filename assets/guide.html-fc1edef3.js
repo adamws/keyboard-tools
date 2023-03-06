@@ -1,1 +1,0 @@
-const e=JSON.parse('{"key":"v-7ea7910b","path":"/kicad-project-generator/guide.html","title":"Guide","lang":"en-US","frontmatter":{},"headers":[],"git":{},"filePathRelative":"kicad-project-generator/guide.md"}');export{e as data};
