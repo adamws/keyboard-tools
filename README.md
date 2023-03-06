@@ -24,7 +24,8 @@ Convert layout from [keyboard-layout-editor](http://www.keyboard-layout-editor.c
 <video src="https://user-images.githubusercontent.com/12676586/211151537-f8073936-38b9-4db1-9f49-ee6022086770.mp4">
 </div>
 
-Detailed documentation available here: [keyboard-tools/kicad-project-generator](https://adamws.github.io/keyboard-tools/kicad-project-generator)
+
+Detailed documentation available [here](https://adamws.github.io/keyboard-tools).
 
 ## KLE converter
 
@@ -34,7 +35,7 @@ Detailed documentation available here: [keyboard-tools/kicad-project-generator](
 
 ## Development
 
-For development guide see [this](https://adamws.github.io/keyboard-tools/kicad-project-generator/development).
+For development guide see [this](https://adamws.github.io/keyboard-tools/development).
 
 ## Credits
 
