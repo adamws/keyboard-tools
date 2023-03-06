@@ -33,8 +33,7 @@ can turn it on.
 
 ::: warning
 Router does not implement any checks. It is possible that routed tracks violate
-PCB manufacturer design rules or are entirely wrong. Most common problem is
-collision with stabilizer mounting holes and routing for rotated switches.
+PCB manufacturer design rules or are entirely wrong.
 
 Remember to always run KiCad DRC checks.
 :::

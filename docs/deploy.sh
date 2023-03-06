@@ -10,31 +10,36 @@ echo "==> Dependencies install\n"
 npm install
 
 echo "==> Build\n"
-npm run build
+npm run docs:build
 
-# navigate into the build output directory
-cd src/.vuepress/dist
+echo "==> Configure git\n"
+git config --global user.name "CircleCI"
+git config --global user.email "${CIRCLE_PROJECT_USERNAME}@users.noreply.github.com"
 
 echo "==> Prepare to deploy\n"
+
+# navigate into the build output directory
+cd src/.vitepress
+
+git clone --depth=1 --single-branch --branch gh-pages $CIRCLE_REPOSITORY_URL gh-pages
+cd gh-pages
+
+# remove everything except "release" directory
+git rm -rf .
+git checkout HEAD -- release || true
+
+# move fresh build to repository
+cp -r ../dist/* .
 
 mkdir .circleci
 wget https://raw.githubusercontent.com/adamws/keyboard-tools/master/.circleci/ghpages-config.yml -O .circleci/config.yml
 touch .nojekyll
-git init
-git config user.name "CircleCI"
-git config user.email "${CIRCLE_PROJECT_USERNAME}@users.noreply.github.com"
-
-if [ -z "$(git status --porcelain)" ]; then
-    echo "Something went wrong" && \
-    echo "Exiting..."
-    exit 0
-fi
 
 echo "==> Start deploying"
 git add -A
-git commit -m 'Deploy documentation'
+git commit -m "Deploy documentation: ${CIRCLE_SHA1}"
 
-git push --force $CIRCLE_REPOSITORY_URL master:gh-pages
+git push
 
 rm -fr .git
 

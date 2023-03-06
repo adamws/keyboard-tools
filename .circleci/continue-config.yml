@@ -117,7 +117,7 @@ jobs:
                   ./deploy/deploy.sh
   deploy-docs:
     docker:
-      - image: cimg/node:15.14.0
+      - image: cimg/node:19.7.0
     steps:
       - checkout
       - add_ssh_keys:

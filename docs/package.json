@@ -9,11 +9,13 @@
   },
   "repository": "https://github.com/adamws/keyboard-tools",
   "scripts": {
-    "dev": "vuepress dev src",
-    "build": "vuepress build src"
+    "docs:dev": "vitepress dev src",
+    "docs:build": "vitepress build src",
+    "docs:preview": "vitepress preview src"
   },
   "license": "MIT",
   "devDependencies": {
-    "vuepress": "^2.0.0-beta.59"
+    "vitepress": "^1.0.0-alpha.49",
+    "vue": "^3.2.47"
   }
 }
