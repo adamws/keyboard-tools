@@ -3,6 +3,7 @@ import os
 import pytest
 import subprocess
 
+from pathlib import Path
 from PIL import Image
 from selenium import webdriver
 
@@ -34,10 +35,15 @@ def pytest_runtest_makereport(item, call):
     extra = getattr(report, "extra", [])
 
     if report.when == "teardown":
-        tmpdir = item.funcargs["tmpdir"]
-        encoded = to_base64(f"{tmpdir}/screenshot.png")
-        html = f"<div class='image'><img src='data:image/png;base64,{encoded}'></div>"
-        extra.append(pytest_html.extras.html(html))
+        try:
+            tmpdir = Path(item.funcargs["tmpdir"])
+        except KeyError:
+            tmpdir = Path.cwd()
+        screenshot_path = tmpdir / "screenshot.png"
+        if screenshot_path.is_file():
+            encoded = to_base64(screenshot_path)
+            html = f"<div class='image'><img src='data:image/png;base64,{encoded}'></div>"
+            extra.append(pytest_html.extras.html(html))
         report.extra = extra
 
 
