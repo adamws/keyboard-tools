@@ -67,8 +67,16 @@ jobs:
             . venv/bin/activate
             ./wait-for-selenium.sh pytest --junitxml=test-results/pytest/results.xml
       - run:
+          name: Get docker compose logs
+          working_directory: tests
+          when: always
+          command: |
+            export TAG=circleci
+            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml logs
+      - run:
           name: Stop docker compose
           working_directory: tests
+          when: always
           command: |
             export TAG=circleci
             docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml stop
