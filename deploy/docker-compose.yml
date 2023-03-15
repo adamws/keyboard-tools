@@ -14,7 +14,7 @@ services:
 
   worker:
     image: admwscki/keyboard-tools-kicad:${TAG:-latest}
-    command: celery -A src.tasks.celery worker -l INFO
+    command: celery -A src.tasks.celery worker -l INFO --prefetch-multiplier 1
     env_file:
       - production.env
     depends_on:

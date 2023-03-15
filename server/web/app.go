@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,6 +29,7 @@ type App struct {
 	celeryClient  *gocelery.CeleryClient
 	celeryBackend *gocelery.RedisCeleryBackend
 	minioClient   *minio.Client
+	redisPool     *redis.Pool
 }
 
 func GetenvOrDefault(key string, defaultValue string) string {
@@ -86,7 +88,7 @@ func NewApp() App {
 	// CORS is enabled only in prod profile
 	production := os.Getenv("PROFILE") == "PRODUCTION"
 
-	app := App{production, celeryClient, celeryBackend, minioClient}
+	app := App{production, celeryClient, celeryBackend, minioClient, redisPool}
 	return app
 }
 
@@ -145,9 +147,60 @@ type taskStatus struct {
 	Result     map[string]interface{} `json:"task_result"`
 }
 
+type taskRequest struct {
+	TaskId            string                 `json:"id"`
+	TaskName          string                 `json:"task"`
+	Arguments         []kleJsonRequest       `json:"args"`
+	KeywordArguments  struct{}               `json:"kwargs"`
+	Retries           int                    `json:"retries"`
+	ETA               string                 `json:"eta"`
+	Expires           string                 `json:"expires"`
+}
+
+type unackedTaskDetails struct {
+	Body            string            `json:"body"`
+	ContentType     string            `json:"content-type"`
+	Properties      messageProperties `json:"properties"`
+	ContentEncoding string            `json:"content-encoding"`
+}
+
+type messageProperties struct {
+	BodyEncoding  string           `json:"body_encoding"`
+	CorrelationID string           `json:"correlation_id"`
+	ReplyTo       string           `json:"reply_to"`
+	DeliveryInfo  deliveryInfo     `json:"delivery_info"`
+	DeliveryMode  int              `json:"delivery_mode"`
+	DeliveryTag   string           `json:"delivery_tag"`
+}
+
+type deliveryInfo struct {
+	Priority   int    `json:"priority"`
+	RoutingKey string `json:"routing_key"`
+	Exchange   string `json:"exchange"`
+}
+
 func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
+		// check how many tasks wait for worker and do not add new one
+		// if above threshold, this is for better management of limited server
+		// resources and part of ddos prevention
+		conn := a.redisPool.Get()
+		defer conn.Close()
+
+		waitingCount, err := redis.Int64(conn.Do("LLEN", "celery"))
+		if err != nil {
+			sendErr(w, http.StatusInternalServerError, "Internal server error")
+			return
+		}
+
+		// pretty low limit but this currently runs on 1 core low performance server,
+		// not expecting big concurrent traffic anyway:
+		if waitingCount > 2 {
+			sendErr(w, http.StatusServiceUnavailable, "Server overloaded, try again later")
+			return
+		}
+
 		var request kleJsonRequest
 		var unmarshalErr *json.UnmarshalTypeError
 		var response taskStatus
@@ -157,7 +210,7 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 
 		decoder := json.NewDecoder(rdr1)
 		decoder.DisallowUnknownFields()
-		err := decoder.Decode(&request)
+		err = decoder.Decode(&request)
 
 		if err != nil {
 			if errors.As(err, &unmarshalErr) {
@@ -202,6 +255,53 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) IsTaskPrefetched(taskId string) bool {
+	// check if task is prefetched by worker (but not yet running)
+	// maximum prefetch number is equal `worker_prefetch_multiplier * worker_concurrency`
+	conn := a.redisPool.Get()
+	defer conn.Close()
+
+	reply, err := redis.Values(conn.Do("HGETALL", "unacked"))
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	for i := 0; i < len(reply); i += 2 {
+		var values []json.RawMessage
+		err := json.Unmarshal(reply[i+1].([]byte), &values)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		var details unackedTaskDetails
+		err = json.Unmarshal(values[0], &details)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		decodedBody, err := base64.StdEncoding.DecodeString(details.Body)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		var request taskRequest
+		err = json.Unmarshal(decodedBody, &request)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		if request.TaskId == taskId {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	var response taskStatus
 
@@ -210,8 +310,16 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 
 	result, err := a.celeryBackend.GetResult(taskId)
 	if err != nil {
-		sendErr(w, http.StatusNotFound, err.Error())
-		return
+		if a.IsTaskPrefetched(taskId) {
+			response.TaskId = taskId
+			response.TaskStatus = "PENDING"
+			response.Result = map[string]interface{}{"percentage": 0}
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			sendErr(w, http.StatusNotFound, err.Error())
+			return
+		}
 	}
 
 	response.TaskId = result.ID

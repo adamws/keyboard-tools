@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A src.tasks.celery worker -l INFO
+    command: celery -A src.tasks.celery worker -l INFO --prefetch-multiplier 1
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
