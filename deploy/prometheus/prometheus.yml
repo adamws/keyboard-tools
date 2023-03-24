@@ -1,0 +1,20 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+      monitor: "keyboard-tools"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+         - targets: ["localhost:9090"]
+
+  - job_name: "traefik"
+    dns_sd_configs:
+    - names:
+      - "reverse-proxy"
+      type: "A"
+      port: 8080

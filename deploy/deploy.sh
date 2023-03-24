@@ -8,10 +8,14 @@ if [ -z "$(ssh-keygen -F $SSH_HOST)" ]; then
     ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts 2> /dev/null
 fi
 
-scp deploy/docker-compose.yml deploy/production.env $SSH_USER@$SSH_HOST:/home/$SSH_USER/app
+SCRIPT_DIR="$(dirname "${0}")"
+
+rsync -avP --exclude="letsencrypt" --exclude=".env" ${SCRIPT_DIR}/ $SSH_USER@$SSH_HOST:/home/$SSH_USER/app
+
 ssh $SSH_USER@$SSH_HOST << EOF
     cd app
+    export TAG=$TAG
     docker-compose down -v --rmi="all"
-    TAG=$TAG docker-compose pull
-    TAG=$TAG docker-compose up -d --force-recreate --renew-anon-volumes
+    docker-compose pull
+    docker-compose up -d --force-recreate
 EOF
