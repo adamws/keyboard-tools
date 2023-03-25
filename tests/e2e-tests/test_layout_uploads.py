@@ -83,10 +83,9 @@ def test_correct_layout_no_matrix_predefined(
 
     download_link = selenium.find_element("xpath", "//a[@id='download']")
     link = download_link.get_attribute("href")
-    job_id = re.search("http://.*/api/pcb/(.*)/result", link).group(1)
 
-    # note that file is downloaded in selenium container to path /home/seluser/Downloads,
-    # which should be mounted here:
+    job_id = re.search(f"{selenium.current_url}api/pcb/(.*)/result", link).group(1)
+
     download_file = f"{download_dir}/{job_id}.zip"
 
     timeout = 60

@@ -12,25 +12,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def pcb_endpoint():
-    return "http://127.0.0.1:8080/api/pcb"
-
-
 def run_pcb_task(backend, request_data, results, index):
     timeout_when_started = 180
     task_id = ""
     task_done = False
     cancelled = False
     while not task_done and not cancelled:
-        r = requests.post(backend, json=request_data)
+        r = requests.post(backend, json=request_data, verify=False)
         if r.status_code == 202:
             # task accepted, poll for result
             task_id = r.json()["task_id"]
             logger.info(f"Task {index} accepted, task id: {task_id}")
             start_time = time.time()
             while True:
-                r = requests.get(f"{backend}/{task_id}")
+                r = requests.get(f"{backend}/{task_id}", verify=False)
                 if r.status_code == 200:
                     status = r.json()["task_status"]
                     if status == "SUCCESS":
@@ -121,18 +116,18 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
 
 def test_get_task_status_before_request(pcb_endpoint, request):
     task_id = "made-up-task-id"
-    r = requests.get(f"{pcb_endpoint}/{task_id}")
+    r = requests.get(f"{pcb_endpoint}/{task_id}", verify=False)
     assert r.status_code == 404
 
 
 def test_get_task_result_before_request(pcb_endpoint, request):
     task_id = "made-up-task-id"
-    r = requests.get(f"{pcb_endpoint}/{task_id}/result")
+    r = requests.get(f"{pcb_endpoint}/{task_id}/result", verify=False)
     assert r.status_code == 404
 
 
 def test_get_task_render_before_request(pcb_endpoint, request):
     task_id = "made-up-task-id"
     for side in ["front", "back"]:
-        r = requests.get(f"{pcb_endpoint}/{task_id}/render/{side}")
+        r = requests.get(f"{pcb_endpoint}/{task_id}/render/{side}", verify=False)
         assert r.status_code == 404
