@@ -18,3 +18,10 @@ scrape_configs:
       - "reverse-proxy"
       type: "A"
       port: 8080
+
+  - job_name: "flower"
+    dns_sd_configs:
+    - names:
+      - "flower"
+      type: "A"
+      port: 5555
