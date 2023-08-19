@@ -1,8 +1,8 @@
-celery==5.2.7
-flask==2.2.2
+celery==5.3.1
+flask==2.3.2
 git+https://github.com/adamws/kinet2pcb@f3cb8dc56492c87897edecbe50b8b26cf65feade
-minio==7.1.13
+minio==7.1.16
 PcbDraw==1.1.2
-redis==4.4.2
+redis==5.0.0
 skidl==1.0.0
 git+https://github.com/adamws/kle2netlist@3dad6730affc0e1eb66f9497082d0bc5ee8afa8a
