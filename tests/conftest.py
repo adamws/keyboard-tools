@@ -142,8 +142,13 @@ def full_screenshot(driver, tmpdir):
 
 
 @pytest.fixture
-def selenium(driver, website_selenium, tmpdir):
-    driver.get(website_selenium)
+def selenium(driver, website_selenium, tmpdir, request):
+    path = ""
+    try:
+        path = request.param
+    except AttributeError:
+        pass
+    driver.get(website_selenium + path)
     yield driver
     full_screenshot(driver, tmpdir)
 
