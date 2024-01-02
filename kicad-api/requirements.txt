@@ -6,3 +6,5 @@ PcbDraw==1.1.2
 redis==5.0.0
 skidl==1.0.0
 git+https://github.com/adamws/kle2netlist@3dad6730affc0e1eb66f9497082d0bc5ee8afa8a
+# lxml 5.0.0 breaks PcbDraw: https://github.com/yaqwsx/PcbDraw/issues/157
+lxml==4.9.3
