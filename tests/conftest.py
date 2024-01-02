@@ -68,12 +68,12 @@ def to_base64(path):
         return base64.b64encode(f.read()).decode("utf-8")
 
 
-@pytest.mark.hookwrapper
+@pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     pytest_html = item.config.pluginmanager.getplugin("html")
     outcome = yield
     report = outcome.get_result()
-    extra = getattr(report, "extra", [])
+    extras = getattr(report, "extras", [])
 
     if report.when == "teardown":
         try:
@@ -83,9 +83,8 @@ def pytest_runtest_makereport(item, call):
         screenshot_path = tmpdir / "screenshot.png"
         if screenshot_path.is_file():
             encoded = to_base64(screenshot_path)
-            html = f"<div class='image'><img src='data:image/png;base64,{encoded}'></div>"
-            extra.append(pytest_html.extras.html(html))
-        report.extra = extra
+            extras.append(pytest_html.extras.image(f"data:image/png;base64,{encoded}"))
+        report.extras = extras
 
 
 @pytest.fixture(scope="session")
