@@ -15,10 +15,10 @@
 Convert layout from [keyboard-layout-editor](http://www.keyboard-layout-editor.com/) to KiCad project.
 
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
-- uses [keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
+- uses [kiswitch library](https://github.com/kiswitch/kiswitch)
 - three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
-- supports basic pre-routing
+- supports basic routing
 
 <div align="center">
 <video src="https://user-images.githubusercontent.com/12676586/211151537-f8073936-38b9-4db1-9f49-ee6022086770.mp4">
@@ -41,7 +41,7 @@ For development guide see [this](https://adamws.github.io/keyboard-tools/develop
 
 - keyboard layout file serialized by [kle-serial](https://github.com/ijprest/kle-serial)
 - netlist generated with [skidl](https://github.com/xesscorp/skidl) based [kle2netlist](https://github.com/adamws/kle2netlist)
-- switch footprints with [keyswitch-kicad-library](https://github.com/perigoso/keyswitch-kicad-library)
+- switch footprints with [kiswitch library](https://github.com/kiswitch/kiswitch)
 - key placement with [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer)
 - pcb preview generated with [pcbdraw](https://github.com/yaqwsx/PcbDraw)
 - project structure generated with [goxygen](https://github.com/Shpota/goxygen)

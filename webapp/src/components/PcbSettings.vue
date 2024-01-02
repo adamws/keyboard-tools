@@ -14,7 +14,7 @@ const controllerCircuit = ref("None");
 const getSettings = () => {
   return {
     matrixOption: matrixOption.value,
-    switchLibrary: "perigoso/keyswitch-kicad-library",
+    switchLibrary: "kiswitch/keyswitch-kicad-library",
     switchFootprint: switchFootprint.value,
     routing: routingOption.value,
     controllerCircuit: controllerCircuit.value,

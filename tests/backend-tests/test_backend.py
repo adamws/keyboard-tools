@@ -98,7 +98,7 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
             "matrixOption": "Automatic",
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
-            "switchLibrary": "perigoso/keyswitch-kicad-library",
+            "switchLibrary": "kiswitch/keyswitch-kicad-library",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])

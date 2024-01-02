@@ -2,7 +2,7 @@
 
 ## Annotated keys
 
-[keyboard-layout-editor](http://www.keyboard-layout-editor.com) | KiCad PCB (perigoso/keyswitch-kicad-library Cherry MX footprints with routing enabled)
+[keyboard-layout-editor](http://www.keyboard-layout-editor.com) | KiCad PCB (kiswitch Cherry MX footprints with routing enabled)
 --- | ---
 ![2x2](./assets/examples/2x2.png) | ![2x2-pcb](./assets/examples/2x2-pcb.svg)
 ![3x2-sizes](./assets/examples/3x2-sizes.png) | ![3x2-pcb](./assets/examples/3x2-sizes-pcb.svg)

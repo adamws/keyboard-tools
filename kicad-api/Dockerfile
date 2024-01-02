@@ -5,7 +5,8 @@ ENV PATH="/kicad/.local/bin:${PATH}"
 RUN mkdir switch-libs \
   && cd switch-libs \
   && mkdir keyswitch-kicad-library && cd keyswitch-kicad-library \
-  && wget https://github.com/perigoso/keyswitch-kicad-library/releases/download/v2.2/keyswitch-kicad-library.zip \
+  && wget https://github.com/kiswitch/keyswitch-kicad-library/releases/download/v2.4/keyswitch-kicad-library.zip \
+  && echo "b38d56323acb91ad660567340ca938c5b4a83a27eea52308ef14aa7857b0071b keyswitch-kicad-library.zip" | sha256sum -c \
   && unzip keyswitch-kicad-library.zip \
   && rm keyswitch-kicad-library.zip
 

@@ -24,7 +24,7 @@ def prepare_project(project_full_path, project_name, switch_library):
     tm = Template(
         "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
     )
-    if switch_library == "perigoso/keyswitch-kicad-library":
+    if switch_library == "kiswitch/keyswitch-kicad-library":
         prefix = "${KIPRJMOD}/libs/keyswitch-kicad-library/footprints"
         fp_lib_table = tm.render(
             fp_libs=[
@@ -72,7 +72,9 @@ def generate_netlist(
             "--name",
             project_name,
             "--switch-library",
-            switch_library,
+            #kle2netlist does not recognize new name yet
+            "perigoso/keyswitch-kicad-library",
+            #switch_library,
             "--switch-footprint",
             switch_footprint,
             "-l",
