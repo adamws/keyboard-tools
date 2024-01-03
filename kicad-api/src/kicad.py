@@ -148,7 +148,8 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
         pcb_path,
     ]
     if settings["routing"] == "Full":
-        kbplacer_args.append("--route")
+        kbplacer_args.append("--route-switches-with-diodes")
+        kbplacer_args.append("--route-rows-and-columns")
     if settings["controllerCircuit"] == "ATmega32U4":
         kbplacer_args.append("-t")
         kbplacer_args.append(str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")))

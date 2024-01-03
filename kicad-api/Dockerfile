@@ -1,4 +1,4 @@
-FROM admwscki/kicad-kbplacer:0.3.f3eba0067482cda7a19275c84b3481d89b917024
+FROM admwscki/kicad-kbplacer:0.8
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
