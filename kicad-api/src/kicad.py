@@ -244,6 +244,7 @@ def generate_render(project_full_path, project_name):
     image.write(f"{project_full_path}/../logs/front.svg")
 
     plotter.render_back = True
+    plotter.mirror = True
     image = plotter.plot()
     image.write(f"{project_full_path}/../logs/back.svg")
 
