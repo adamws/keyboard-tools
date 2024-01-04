@@ -1,22 +1,20 @@
+import glob
 import json
+import logging
 import os
 import re
 import shutil
-import pcbnew
-import logging
-import glob
-
-from jinja2 import Template
 from pathlib import Path
-from pcbdraw.plot import PcbPlotter
-from kle2netlist.skidl import build_circuit, generate_netlist
 
+import pcbnew
+from jinja2 import Template
 from kbplacer.defaults import DEFAULT_DIODE_POSITION, ZERO_POSITION
 from kbplacer.element_position import ElementInfo, PositionOption
 from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import TemplateCopier
-
 from kinet2pcb import kinet2pcb
+from kle2netlist.skidl import build_circuit, generate_netlist
+from pcbdraw.plot import PcbPlotter
 
 
 def prepare_project(project_full_path, project_name, switch_library):

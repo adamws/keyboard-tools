@@ -1,13 +1,13 @@
 import os
 import shutil
 import traceback
+from pathlib import Path
 
 from celery import Celery, states
 from celery.exceptions import Ignore
 from minio import Minio
 from minio.commonconfig import ENABLED, Filter
-from minio.lifecycleconfig import LifecycleConfig, Rule, Expiration
-from pathlib import Path
+from minio.lifecycleconfig import Expiration, LifecycleConfig, Rule
 
 from . import kicad
 
