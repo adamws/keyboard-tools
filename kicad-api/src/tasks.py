@@ -52,9 +52,7 @@ def __upload_to_storage(task_id, log_path):
         client.set_bucket_lifecycle("kicad-projects", config)
 
     home = Path.home()
-    client.fput_object(
-        bucket_name, f"{task_id}/{task_id}.zip", f"{home}/{task_id}.zip"
-    )
+    client.fput_object(bucket_name, f"{task_id}/{task_id}.zip", f"{home}/{task_id}.zip")
     for side in ["front", "back"]:
         client.fput_object(
             bucket_name,

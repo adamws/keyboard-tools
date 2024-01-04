@@ -53,15 +53,20 @@ def prepare_project(project_full_path, project_name, switch_library):
         f.write('(kicad_pcb (version 4) (host kicad "dummy file") )')
 
     file_path = os.path.dirname(os.path.realpath(__file__))
-    with open(f"{file_path}/keyboard.kicad_pro.template", "r") as f:
+    with open(f"{file_path}/keyboard.kicad_pro.template") as f:
         template = Template(f.read())
-        result = template.render(project_name = project_name)
+        result = template.render(project_name=project_name)
         with open(f"{project_full_path}/{project_name}.kicad_pro", "w") as f:
             f.write(result)
 
 
 def generate_netlist_from_layout(
-    project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
+    project_full_path,
+    layout_file,
+    project_name,
+    switch_library,
+    switch_footprint,
+    controller_circuit,
 ):
     project_libs = "/usr/share/kicad/library"
     with open(layout_file) as f:
@@ -80,10 +85,14 @@ def generate_netlist_from_layout(
 def generate_pcb_file(project_full_path, project_name):
     input_file = f"{project_full_path}/{project_name}.net"
     output_file = os.path.splitext(input_file)[0] + ".kicad_pcb"
-    kinet2pcb(input_file, output_file, [
-        "/usr/share/kicad/footprints",
-        f"{project_full_path}/libs/keyswitch-kicad-library/footprints",
-    ])
+    kinet2pcb(
+        input_file,
+        output_file,
+        [
+            "/usr/share/kicad/footprints",
+            f"{project_full_path}/libs/keyswitch-kicad-library/footprints",
+        ],
+    )
 
 
 def run_element_placement(project_full_path, project_name, layout_file, settings):
@@ -92,9 +101,11 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
     diode = ElementInfo("D{}", PositionOption.DEFAULT, DEFAULT_DIODE_POSITION, "")
     route_switches_with_diodes = settings["routing"] == "Full"
     route_rows_and_columns = settings["routing"] == "Full"
-    additional_elements = [ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")]
+    additional_elements = [
+        ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")
+    ]
 
-    with open(layout_file, "r") as f:
+    with open(layout_file) as f:
         layout = json.load(f)
 
     board = pcbnew.LoadBoard(pcb_path)
@@ -106,11 +117,13 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
         diode,
         route_switches_with_diodes,
         route_rows_and_columns,
-        additional_elements
+        additional_elements,
     )
 
     if settings["controllerCircuit"] == "ATmega32U4":
-        template_path = str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb"))
+        template_path = str(
+            Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")
+        )
         copier = TemplateCopier(board, template_path, route_rows_and_columns)
         copier.run()
 
@@ -242,7 +255,12 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     update_state_callback(20)
     generate_netlist_from_layout(
-        project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
+        project_full_path,
+        layout_file,
+        project_name,
+        switch_library,
+        switch_footprint,
+        controller_circuit,
     )
 
     update_state_callback(30)
