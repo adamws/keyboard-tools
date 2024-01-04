@@ -39,7 +39,8 @@ def prepare_project(project_full_path, project_name, switch_library):
             f"{project_full_path}/libs/keyswitch-kicad-library",
         )
     else:
-        raise Exception("Unsupported switch library")
+        msg = "Unsupported switch library"
+        raise Exception(msg)
 
     with open(f"{project_full_path}/fp-lib-table", "w") as f:
         f.write(fp_lib_table)
@@ -121,7 +122,8 @@ def generate_pcb_file(project_full_path, project_name):
         log = ""
         with open(kicad_pcb_log_path, "r") as file:
             log = file.read()
-        raise Exception(f"Generate .kicad_pcb from netlist failed: details: {log}")
+        msg = f"Generate .kicad_pcb from netlist failed, details:\n{log}"
+        raise Exception(msg)
 
     kicad_pcb_log.close()
 
@@ -166,7 +168,8 @@ def run_element_placement(project_full_path, project_name, layout_file, settings
         log = ""
         with open(kbplacer_log_path, "r") as file:
             log = file.read()
-        raise Exception(f"Switch placement failed: details: {log}")
+        msg = f"Switch placement failed, details:\n{log}"
+        raise Exception(msg)
 
     kbplacer_log.close()
 
@@ -205,7 +208,8 @@ def add_edge_cuts(project_full_path, project_name):
         pcbnew.Refresh()
         pcbnew.SaveBoard(pcb_path, board)
     except Exception as err:
-        raise Exception("Adding egde cuts failed") from err
+        msg = "Adding egde cuts failed"
+        raise Exception(msg) from err
 
 
 def generate_render(project_full_path, project_name):
@@ -232,7 +236,8 @@ def generate_render(project_full_path, project_name):
 
         pcbnew.SaveBoard(pcb_for_render, board)
     except Exception as err:
-        raise Exception("Removing footprints before render generation failed") from err
+        msg = "Removing footprints before render generation failed"
+        raise Exception(msg) from err
 
     plotter = PcbPlotter(pcb_for_render)
     plotter.setup_arbitrary_data_path(".")
