@@ -1,19 +1,25 @@
-import datetime
 import json
 import os
 import re
 import shutil
-import subprocess
 import pcbnew
+import logging
+import glob
 
 from jinja2 import Template
 from pathlib import Path
 from pcbdraw.plot import PcbPlotter
+from kle2netlist.skidl import build_circuit, generate_netlist
+
+from kbplacer.defaults import DEFAULT_DIODE_POSITION, ZERO_POSITION
+from kbplacer.element_position import ElementInfo, PositionOption
+from kbplacer.key_placer import KeyPlacer
+from kbplacer.template_copier import TemplateCopier
+
+from kinet2pcb import kinet2pcb
 
 
 def prepare_project(project_full_path, project_name, switch_library):
-    Path(project_full_path).mkdir(parents=True, exist_ok=True)
-
     tm = Template(
         "(sym_lib_table\n{% for sym_lib in sym_libs -%}{{ sym_lib }}\n{% endfor %})"
     )
@@ -56,122 +62,62 @@ def prepare_project(project_full_path, project_name, switch_library):
             f.write(result)
 
 
-def generate_netlist(
+def generate_netlist_from_layout(
     project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
 ):
     project_libs = "/usr/share/kicad/library"
-
-    kle2netlist_log_path = f"{project_full_path}/../logs/kle2netlist.log"
-    kle2netlist_log = open(kle2netlist_log_path, "w")
-
-    args = [
-            "kle2netlist",
-            "--layout",
-            layout_file,
-            "--output-dir",
-            project_full_path,
-            "--name",
-            project_name,
-            "--switch-library",
-            #kle2netlist does not recognize new name yet
-            "perigoso/keyswitch-kicad-library",
-            #switch_library,
-            "--switch-footprint",
-            switch_footprint,
-            "-l",
-            project_libs,
-        ]
-    if controller_circuit == "ATmega32U4":
-        args.append("--controller-circuit")
-
-    p = subprocess.Popen(
-        args,
-        stdout=kle2netlist_log,
-        stderr=subprocess.STDOUT,
-    )
-    p.communicate()
-    if p.returncode != 0:
-        log = ""
-        with open(kle2netlist_log_path, "r") as file:
-            log = file.read()
-        raise Exception(f"Generate netlist failed: details: {log}")
-
-    kle2netlist_log.close()
+    with open(layout_file) as f:
+        json_layout = json.loads(f.read())
+        build_circuit(
+            json_layout,
+            switch_library=switch_library,
+            switch_footprint=switch_footprint,
+            diode_footprint="D_SOD-323F",
+            additional_search_path=project_libs,
+            controller_circuit=controller_circuit == "ATmega32U4",
+        )
+    generate_netlist(f"{project_full_path}/{project_name}.net")
 
 
 def generate_pcb_file(project_full_path, project_name):
-    env = os.environ.copy()
-    env["KIPRJMOD"] = project_full_path
-    env["KICAD7_FOOTPRINT_DIR"] = "/usr/share/kicad/footprints"
-
-    pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
-
-    kicad_pcb_log_path = f"{project_full_path}/../logs/kinet2pcb.log"
-    kicad_pcb_log = open(kicad_pcb_log_path, "w")
-
-    p = subprocess.Popen(
-        ["kinet2pcb", "-w", "-nb", "-i", f"{project_name}.net"],
-        cwd=project_full_path,
-        env=env,
-        stdout=kicad_pcb_log,
-        stderr=subprocess.STDOUT,
-    )
-    p.communicate()
-
-    if p.returncode != 0:
-        log = ""
-        with open(kicad_pcb_log_path, "r") as file:
-            log = file.read()
-        msg = f"Generate .kicad_pcb from netlist failed, details:\n{log}"
-        raise Exception(msg)
-
-    kicad_pcb_log.close()
+    input_file = f"{project_full_path}/{project_name}.net"
+    output_file = os.path.splitext(input_file)[0] + ".kicad_pcb"
+    kinet2pcb(input_file, output_file, [
+        "/usr/share/kicad/footprints",
+        f"{project_full_path}/libs/keyswitch-kicad-library/footprints",
+    ])
 
 
 def run_element_placement(project_full_path, project_name, layout_file, settings):
-    env = os.environ.copy()
-    env["KIPRJMOD"] = project_full_path
-
     pcb_path = f"{project_full_path}/{project_name}.kicad_pcb"
 
-    kbplacer_log_path = f"{project_full_path}/../logs/kbplacer.log"
-    kbplacer_log = open(kbplacer_log_path, "w")
+    diode = ElementInfo("D{}", PositionOption.DEFAULT, DEFAULT_DIODE_POSITION, "")
+    route_switches_with_diodes = settings["routing"] == "Full"
+    route_rows_and_columns = settings["routing"] == "Full"
+    additional_elements = [ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")]
 
-    home_directory = Path.home()
-    workdir = f"{home_directory}/.local/share/kicad/7.0/3rdparty/plugins"
-    package_name = "com_github_adamws_kicad-kbplacer"
-    kbplacer_args = [
-        "python3",
-        "-m",
-        package_name,
-        "-l",
-        layout_file,
-        "-b",
-        pcb_path,
-    ]
-    if settings["routing"] == "Full":
-        kbplacer_args.append("--route-switches-with-diodes")
-        kbplacer_args.append("--route-rows-and-columns")
-    if settings["controllerCircuit"] == "ATmega32U4":
-        kbplacer_args.append("-t")
-        kbplacer_args.append(str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")))
+    with open(layout_file, "r") as f:
+        layout = json.load(f)
 
-    p = subprocess.Popen(
-        kbplacer_args,
-        cwd = workdir,
-        env=env,
-        stdout=kbplacer_log,
-        stderr=subprocess.STDOUT,
+    board = pcbnew.LoadBoard(pcb_path)
+
+    placer = KeyPlacer(board, (19.05, 19.05))
+    placer.run(
+        layout,
+        "SW{}",
+        diode,
+        route_switches_with_diodes,
+        route_rows_and_columns,
+        additional_elements
     )
-    p.communicate()
-    if p.returncode != 0:
-        log = ""
-        with open(kbplacer_log_path, "r") as file:
-            log = file.read()
-        msg = f"Switch placement failed, details:\n{log}"
-        raise Exception(msg)
 
-    kbplacer_log.close()
+    if settings["controllerCircuit"] == "ATmega32U4":
+        template_path = str(Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb"))
+        copier = TemplateCopier(board, template_path, route_rows_and_columns)
+        copier.run()
+
+    pcbnew.Refresh()
+    pcbnew.SaveBoard(pcb_path, board)
 
 
 def add_edge_cuts(project_full_path, project_name):
@@ -253,7 +199,20 @@ def generate_render(project_full_path, project_name):
     image = plotter.plot()
     image.write(f"{project_full_path}/../logs/back.svg")
 
-    os.remove(pcb_for_render)
+    for f in glob.glob(f"{project_full_path}/*_render*"):
+        os.remove(f)
+
+
+def configure_loggers(log_path):
+    kbplacer_log_path = f"{log_path}/kbplacer.log"
+    ch = logging.FileHandler(kbplacer_log_path, mode="w")
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(logging.Formatter("[%(filename)s:%(lineno)d]: %(message)s"))
+
+    kbplacer_logger = logging.getLogger("kbplacer")
+    kbplacer_logger.setLevel(logging.DEBUG)
+    kbplacer_logger.addHandler(ch)
+    kbplacer_logger.propagate = False
 
 
 def new_pcb(task_id, task_request, update_state_callback):
@@ -269,6 +228,12 @@ def new_pcb(task_id, task_request, update_state_callback):
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
+    Path(project_full_path).mkdir(parents=True, exist_ok=True)
+
+    log_path = str(Path(task_id).joinpath("logs").absolute())
+    os.mkdir(log_path)
+
+    configure_loggers(log_path)
 
     update_state_callback(10)
     prepare_project(project_full_path, project_name, switch_library)
@@ -277,11 +242,8 @@ def new_pcb(task_id, task_request, update_state_callback):
     with open(layout_file, "w") as out:
         out.write(json.dumps(layout, indent=2))
 
-    log_path = str(Path(task_id).joinpath("logs").absolute())
-    os.mkdir(log_path)
-
     update_state_callback(20)
-    generate_netlist(
+    generate_netlist_from_layout(
         project_full_path, layout_file, project_name, switch_library, switch_footprint, controller_circuit
     )
 
