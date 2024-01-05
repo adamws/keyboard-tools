@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def assert_zip_content(zipfile):
     files_in_zip = zipfile.namelist()
-    assert "logs/kbplacer.log" in files_in_zip
+    assert "logs/build.log" in files_in_zip
     expected_in_keyboard_dir = [
         "sym-lib-table",
         "keyboard.net",
@@ -101,7 +101,7 @@ def layout_test_steps(selenium, layout_file, download_dir):
 
     with zipfile.ZipFile(download_file, "r") as result:
         assert_zip_content(result)
-        with result.open("logs/kbplacer.log") as log_file:
+        with result.open("logs/build.log") as log_file:
             assert_kicad_log(log_file, layout_file)
 
 

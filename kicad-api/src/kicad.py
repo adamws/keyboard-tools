@@ -15,6 +15,10 @@ from kbplacer.template_copier import TemplateCopier
 from kinet2pcb import kinet2pcb
 from kle2netlist.skidl import build_circuit, generate_netlist
 from pcbdraw.plot import PcbPlotter
+from skidl.logger import logger as skidl_logger
+from skidl.logger import erc_logger as skidl_erc_logger
+
+__all__ = ["new_pcb"]
 
 
 def prepare_project(project_full_path, project_name, switch_library):
@@ -173,15 +177,28 @@ def generate_render(pcb_path: Path):
 
 
 def configure_loggers(log_path):
-    kbplacer_log_path = f"{log_path}/kbplacer.log"
-    ch = logging.FileHandler(kbplacer_log_path, mode="w")
+    log_path = f"{log_path}/build.log"
+    ch = logging.FileHandler(log_path, mode="w")
     ch.setLevel(logging.DEBUG)
-    ch.setFormatter(logging.Formatter("[%(filename)s:%(lineno)d]: %(message)s"))
+    ch.setFormatter(logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s"))
 
-    kbplacer_logger = logging.getLogger("kbplacer")
-    kbplacer_logger.setLevel(logging.DEBUG)
-    kbplacer_logger.addHandler(ch)
-    kbplacer_logger.propagate = False
+    dependencies_loggers = [
+        logging.getLogger("kbplacer"),
+        logging.getLogger("kinet2pcb"),
+        skidl_logger,
+        skidl_erc_logger
+    ]
+    for logger in dependencies_loggers:
+        for handler in logger.handlers:
+            try:
+                logger.removeHandler(handler)
+            except:
+                # removing handler from skidl logger might trigger removing of
+                # a file which does not exist. Ignore all issues with logger handlers.
+                pass
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(ch)
+        logger.propagate = False
 
 
 def is_key_label_valid(label):
@@ -282,4 +299,3 @@ def new_pcb(task_id, task_request, update_state_callback):
     return log_path
 
 
-__all__ = ["new_pcb"]
