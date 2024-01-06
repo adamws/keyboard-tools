@@ -64,7 +64,7 @@ Recommended workflow contains following steps:
 
     ![uc-circuit](./assets/guide/uc-circuit.png)
 
-    For connecting key matix rows/collumns use `Global Labels` with following
+    For connecting key matrix rows/columns use `Global Labels` with following
     name convention: `ROW{number}`/`COL{number}`
 
     ::: tip
