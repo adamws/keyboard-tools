@@ -1,5 +1,4 @@
 celery==5.3.6
-flask==3.0.0
 git+https://github.com/adamws/kinet2pcb@1fc8a4b67e9fbb25beade950c80d3cdc8d868c23
 minio==7.1.16
 PcbDraw==1.1.2

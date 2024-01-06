@@ -7,9 +7,9 @@ import shutil
 from pathlib import Path
 
 import pcbnew
-from jinja2 import Template
 from kbplacer.defaults import DEFAULT_DIODE_POSITION, ZERO_POSITION
 from kbplacer.element_position import ElementInfo, PositionOption
+from kbplacer.kle_serial import get_keyboard
 from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import TemplateCopier
 from kinet2pcb import kinet2pcb
@@ -19,49 +19,6 @@ from skidl.logger import logger as skidl_logger
 from skidl.logger import erc_logger as skidl_erc_logger
 
 __all__ = ["new_pcb"]
-
-
-def prepare_project(project_full_path, project_name, switch_library):
-    tm = Template(
-        "(sym_lib_table\n{% for sym_lib in sym_libs -%}{{ sym_lib }}\n{% endfor %})"
-    )
-    sym_lib_table = tm.render(sym_libs=[])
-    with open(f"{project_full_path}/sym-lib-table", "w") as f:
-        f.write(sym_lib_table)
-
-    tm = Template(
-        "(fp_lib_table\n{% for fp_lib in fp_libs -%}{{ fp_lib }}\n{% endfor %})"
-    )
-    if switch_library == "kiswitch/keyswitch-kicad-library":
-        prefix = "${KIPRJMOD}/libs/keyswitch-kicad-library/footprints"
-        fp_lib_table = tm.render(
-            fp_libs=[
-                f'(lib (name Switch_Keyboard_Cherry_MX)(type KiCad)(uri {prefix}/Switch_Keyboard_Cherry_MX.pretty)(options "")(descr ""))',
-                f'(lib (name Switch_Keyboard_Alps_Matias)(type KiCad)(uri {prefix}/Switch_Keyboard_Alps_Matias.pretty)(options "")(descr ""))',
-                f'(lib (name Switch_Keyboard_Hybrid)(type KiCad)(uri {prefix}/Switch_Keyboard_Hybrid.pretty)(options "")(descr ""))',
-                f'(lib (name Mounting_Keyboard_Stabilizer)(type KiCad)(uri {prefix}/Mounting_Keyboard_Stabilizer.pretty)(options "")(descr ""))',
-            ]
-        )
-        shutil.copytree(
-            "switch-libs/keyswitch-kicad-library",
-            f"{project_full_path}/libs/keyswitch-kicad-library",
-        )
-    else:
-        msg = "Unsupported switch library"
-        raise Exception(msg)
-
-    with open(f"{project_full_path}/fp-lib-table", "w") as f:
-        f.write(fp_lib_table)
-
-    with open(f"{project_full_path}/{project_name}.kicad_pcb", "w") as f:
-        f.write('(kicad_pcb (version 4) (host kicad "dummy file") )')
-
-    file_path = os.path.dirname(os.path.realpath(__file__))
-    with open(f"{file_path}/keyboard.kicad_pro.template") as f:
-        template = Template(f.read())
-        result = template.render(project_name=project_name)
-        with open(f"{project_full_path}/{project_name}.kicad_pro", "w") as f:
-            f.write(result)
 
 
 def run_element_placement(pcb_path, layout, settings):
@@ -240,8 +197,6 @@ def new_pcb(task_id, task_request, update_state_callback):
     layout = task_request["layout"]
     settings = task_request["settings"]
 
-    switch_library = settings["switchLibrary"]
-
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
@@ -253,8 +208,6 @@ def new_pcb(task_id, task_request, update_state_callback):
     configure_loggers(log_path)
 
     update_state_callback(10)
-    prepare_project(project_full_path, project_name, switch_library)
-
     sanitize_keys(layout["keys"])
 
     pcb_file = f"{project_full_path}/{project_name}.kicad_pcb"
@@ -275,14 +228,12 @@ def new_pcb(task_id, task_request, update_state_callback):
     generate_netlist(netlist_file)
 
     update_state_callback(30)
-    kinet2pcb(
-        netlist_file,
-        pcb_file,
-        [
-            "/usr/share/kicad/footprints",
-            f"{project_full_path}/libs/keyswitch-kicad-library/footprints",
-        ],
-    )
+    libraries = ["/usr/share/kicad/footprints"]
+    footprints = Path(f"{Path.home()}/.local/share/kicad/7.0/3rdparty/footprints")
+    for path in footprints.iterdir():
+        if path.is_dir():
+            libraries.append(str(path))
+    kinet2pcb(netlist_file, pcb_file, libraries)
 
     update_state_callback(40)
     run_element_placement(pcb_file, layout, settings)

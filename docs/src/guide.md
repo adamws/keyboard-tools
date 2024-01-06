@@ -16,7 +16,7 @@ Recommended workflow contains following steps:
 - Go to [keyboard-tools's](http://keyboard-tools.xyz/) KiCad Project Generator
   tab (1), choose project options (2) and upload keyboard layout (3).
 
-  In this example I decided to use *Cherry MX* footprints  and I enabled
+  In this example I decided to use *Cherry MX* footprints and I enabled
   routing. Because I did not used key annotations (see
   [this](features#matrix-position-assignment)) I used *Automatic* matrix option.
 
@@ -25,17 +25,10 @@ Recommended workflow contains following steps:
 
   ![frontend](./assets/guide/frontend.png)
 
-- Download and unzip project. Open project located in `keyboard` directory.
-  It should contain following structure:
+- Download and unzip project. There will be two directories. One for `logs`
+  and the other for KiCad files.
 
-  ![kicad-project](./assets/guide/kicad-project.png)
-
-  ::: tip
-  Generated project has entire selected switch library bundled in.
-  This makes footprint replacement easy.
-  :::
-
-  `keyboard.kicad_pcb` file should have switches and diodes placed according
+  `*.kicad_pcb` file should have switches and diodes placed according
   to provided layout like this:
 
   ![pcb](./assets/guide/pcb.png)
@@ -81,7 +74,7 @@ Recommended workflow contains following steps:
     otherwise key matrix netlist will be overwritten (by default, KiCad names
     netlist same as project).
 
-  - Open `keyboard.kicad_pcb` and load microcontroller netlist.
+  - Open `*.kicad_pcb` and load microcontroller netlist.
 
     ![load-netlist](./assets/guide/load-netlist.png)
 

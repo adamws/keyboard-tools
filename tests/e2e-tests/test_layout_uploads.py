@@ -20,7 +20,6 @@ def assert_zip_content(zipfile):
     files_in_zip = zipfile.namelist()
     assert "logs/build.log" in files_in_zip
     expected_in_keyboard_dir = [
-        "sym-lib-table",
         "keyboard.net",
         "keyboard.kicad_pro",
         "keyboard.kicad_pcb",

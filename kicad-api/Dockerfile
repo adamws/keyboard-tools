@@ -2,13 +2,16 @@ FROM admwscki/kicad-kbplacer:0.8
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
-RUN mkdir switch-libs \
-  && cd switch-libs \
-  && mkdir keyswitch-kicad-library && cd keyswitch-kicad-library \
+# simulate installation with KiCad's PCM (we care only about footprints):
+RUN cd /kicad/.local/share/kicad/7.0/3rdparty \
+  && mkdir -p footprints \
+  && mkdir tmp && cd tmp \
   && wget https://github.com/kiswitch/keyswitch-kicad-library/releases/download/v2.4/keyswitch-kicad-library.zip \
   && echo "b38d56323acb91ad660567340ca938c5b4a83a27eea52308ef14aa7857b0071b keyswitch-kicad-library.zip" | sha256sum -c \
   && unzip keyswitch-kicad-library.zip \
-  && rm keyswitch-kicad-library.zip
+  && rm keyswitch-kicad-library.zip \
+  && mv footprints ../footprints/com_github_perigoso_keyswitch-kicad-library \
+  && cd .. && rm -rf tmp
 
 RUN mkdir templates \
   && cd templates \
