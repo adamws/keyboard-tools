@@ -47,8 +47,9 @@ Recommended workflow contains following steps:
     with different `Y` coordinate).
 
     ::: tip
-    Always run DRC check on imported projects. Implemented router does not guarantee
-    that rules are met, for details see [this](features#routing).
+    Newer [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer) should not add
+    tracks colliding with other elements but always run DRC check on imported projects.
+    Implemented router does not guarantee that rules are met, for details see [this](features#routing).
     :::
 
 - From this point onward, PCB needs to be finished by user.

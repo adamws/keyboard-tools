@@ -28,12 +28,12 @@ Three footprint types are supported: Cherry MX, Alps and Cherry MX/Alps hybrid.
 ## Routing
 
 KiCad project generator implements simple track routing. It attempts to connect
-switch matrix columns and rows. By default, this option is disabled but user
-can turn it on.
+switches with diodes and switch matrix columns and rows.
+By default, this option is disabled but user can turn it on.
 
 ::: warning
-Router does not implement any checks. It is possible that routed tracks violate
-PCB manufacturer design rules or are entirely wrong.
+It is possible that routed tracks violate PCB manufacturer design rules
+or are entirely wrong.
 
 Remember to always run KiCad DRC checks.
 :::
