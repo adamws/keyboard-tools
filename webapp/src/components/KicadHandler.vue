@@ -194,15 +194,21 @@ function uploadLayout() {
     <PcbSettings ref="pcbSettingsRef" />
     <br />
     <div>
-      <el-button type="primary" @click="triggerUpload" :icon="UploadFilled">
-        Upload layout
-      </el-button>
-      <input
-        type="file"
-        id="file"
-        accept=".json"
-        v-on:change="uploadLayout"
-        style="display: none" />
+      <span>
+        <el-button type="primary" @click="triggerUpload" :icon="UploadFilled">
+          Upload layout
+        </el-button>
+        <input
+          type="file"
+          id="file"
+          accept=".json"
+          v-on:change="uploadLayout"
+          style="display: none" />
+      </span>
+      <span>
+        Looking for inspiration? Check out
+        <a href="https://adamws.github.io/keyboard-pcbs/">layout gallery</a>.
+      </span>
     </div>
   </div>
   <div style="margin-top: 15px">
