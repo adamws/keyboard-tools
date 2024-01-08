@@ -205,8 +205,8 @@ function uploadLayout() {
           v-on:change="uploadLayout"
           style="display: none" />
       </span>
-      <span>
-        Looking for inspiration? Check out
+      <span id="inspiration-text">
+        Looking for inspiration? Check out this
         <a href="https://adamws.github.io/keyboard-pcbs/">layout gallery</a>.
       </span>
     </div>
@@ -233,4 +233,9 @@ function uploadLayout() {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+#inspiration-text {
+  vertical-align: middle;
+  margin-left: 10px;
+}
+</style>
