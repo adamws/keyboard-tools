@@ -111,7 +111,13 @@ function getConvertedLayout() {
   background: #f8f8f8;
 
   /* you must provide font-family font-size line-height. Example: */
-  font-family: Fira code, Fira Mono, Consolas, Menlo, Courier, monospace;
+  font-family:
+    Fira code,
+    Fira Mono,
+    Consolas,
+    Menlo,
+    Courier,
+    monospace;
   font-size: 14px;
   line-height: 1.5;
   padding: 5px;

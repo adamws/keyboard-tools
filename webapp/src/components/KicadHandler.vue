@@ -48,17 +48,17 @@ function showTaskStatusFailAlert(message) {
     h(
       "span",
       { style: "color: var(--el-color-error); font-weight: bold" },
-      "An unexpected error occurred. "
+      "An unexpected error occurred. ",
     ),
     h(
       "span",
       null,
-      "Please try again. If the error persists, you can submit the issue with the following details at "
+      "Please try again. If the error persists, you can submit the issue with the following details at ",
     ),
     h(
       "a",
       { href: "https://github.com/adamws/keyboard-tools/issues/new" },
-      "GitHub"
+      "GitHub",
     ),
     h("span", null, ":"),
     h(
@@ -66,7 +66,7 @@ function showTaskStatusFailAlert(message) {
       {
         style: "margin-top: 10px; font-family: monospace; font-size: small",
       },
-      stackTrace
+      stackTrace,
     ),
   ]);
   showFailAlert(message);
@@ -137,12 +137,12 @@ function uploadLayout() {
         h(
           "p",
           { style: "color: var(--el-color-error); font-weight: bold" },
-          "Layouts exceeding 150 keys not supported."
+          "Layouts exceeding 150 keys not supported.",
         ),
         h(
           "p",
           null,
-          "Sorry, we are unable to process your request. This keyboard is too big and could overload our server."
+          "Sorry, we are unable to process your request. This keyboard is too big and could overload our server.",
         ),
       ]);
       showFailAlert(message);

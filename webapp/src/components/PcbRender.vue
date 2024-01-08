@@ -67,11 +67,14 @@ const resetZoomAndPosition = () => {
   imagePositionY.value = 0;
 };
 
-watch(() => props.source, (newSource, oldSource) => {
-  if (newSource === '') {
-    resetZoomAndPosition();
-  }
-});
+watch(
+  () => props.source,
+  (newSource, oldSource) => {
+    if (newSource === "") {
+      resetZoomAndPosition();
+    }
+  },
+);
 </script>
 
 <template>
