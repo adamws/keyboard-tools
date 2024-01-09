@@ -1,12 +1,43 @@
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import logo from "./assets/logo.png";
+import githubIcon from "./assets/GitHub-Mark-32px.png";
+import { Menu } from "@element-plus/icons-vue";
+
+const logoSrc = ref(logo);
+const githubIconSrc = ref(githubIcon);
+const version = ref(__APP_VERSION__);
+const menuIcon = Menu;
+const isMenuCollapsed = ref(false);
+
+const githubLink = ref("https://github.com/adamws/keyboard-tools");
+
+const handleWindowResize = () => {
+  isMenuCollapsed.value = window.innerWidth < 800;
+};
+
+onMounted(() => {
+  handleWindowResize();
+  window.addEventListener("resize", handleWindowResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleWindowResize);
+});
+</script>
+
 <template>
   <div id="app">
     <el-container>
-      <el-header style="height: 80px">
-        <div><img :src="logo" height="60" /></div>
-        <div>Keyboard tools</div>
-      </el-header>
-      <el-main>
-        <el-menu :default-active="$route.path" :router="true" mode="horizontal">
+      <el-header>
+        <el-menu
+          :default-active="$route.path"
+          :router="true"
+          :ellipsis="isMenuCollapsed"
+          :ellipsis-icon="menuIcon"
+          mode="horizontal">
+          <div class="logo"><img :src="logo" height="40" alt="Logo" /></div>
+          <div v-if="isMenuCollapsed" class="flex-grow" />
           <el-menu-item index="/" route="/"
             >KiCad Project Generator</el-menu-item
           >
@@ -15,16 +46,23 @@
           >
           <el-menu-item index="/help" route="/help">Help</el-menu-item>
           <el-menu-item index="/about" route="/about">About</el-menu-item>
+          <div v-if="!isMenuCollapsed" class="flex-grow" />
+          <el-menu-item>
+            <el-link :href="githubLink" :underline="false" target="_blank">
+              Visit on GitHub
+              <img
+                :src="githubIconSrc"
+                height="20"
+                alt="Github"
+                style="padding-left: 5px" />
+            </el-link>
+          </el-menu-item>
         </el-menu>
-        <br />
+      </el-header>
+      <el-main>
         <router-view />
       </el-main>
       <el-footer>
-        <div>
-          <a href="https://github.com/adamws/keyboard-tools"
-            ><img :src="githubIcon"
-          /></a>
-        </div>
         <div style="font-size: var(--el-font-size-extra-small)">
           version {{ version }}
         </div>
@@ -33,52 +71,13 @@
   </div>
 </template>
 
-<script>
-import logo from "./assets/logo.png";
-import githubIcon from "./assets/GitHub-Mark-32px.png";
-export default {
-  name: "App",
-  data() {
-    return {
-      logo: logo,
-      githubIcon: githubIcon,
-      version: __APP_VERSION__,
-    };
-  },
-};
-</script>
-
 <style>
 body {
-  margin-top: 2%;
-  padding-right: 5%;
-  padding-left: 5%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media screen and (min-width: 800px) {
-  body {
-    padding-right: 5%;
-    padding-left: 5%;
-  }
-}
-
-@media screen and (min-width: 1600px) {
-  body {
-    padding-right: 10%;
-    padding-left: 10%;
-  }
-}
-
-@media screen and (max-width: 800px) {
-  .el-menu--horizontal > .el-menu-item {
-    height: 30px;
-    line-height: 30px;
-  }
 }
 
 code {
@@ -98,7 +97,22 @@ code {
   margin-left: 5%;
 }
 
+.logo {
+  margin-right: 20px;
+}
+
+#app {
+  height: 100%;
+  min-width: 320px;
+  max-width: 1920px;
+  margin: auto;
+}
+
 a {
   text-decoration: none;
+}
+
+.flex-grow {
+  flex-grow: 1;
 }
 </style>
