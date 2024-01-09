@@ -97,6 +97,10 @@ code {
   margin-left: 5%;
 }
 
+.el-menu:not(.el-menu--collapse) .el-sub-menu__title {
+  padding-right: var(--el-menu-base-level-padding) !important;
+}
+
 .logo {
   margin-right: 20px;
 }
