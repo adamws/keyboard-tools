@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import logo from "./assets/logo.png";
-import githubIcon from "./assets/GitHub-Mark-32px.png";
+import githubIcon from "./assets/github-mark.svg";
 import { Menu } from "@element-plus/icons-vue";
 
 const logoSrc = ref(logo);
@@ -52,7 +52,7 @@ onBeforeUnmount(() => {
               Visit on GitHub
               <img
                 :src="githubIconSrc"
-                height="20"
+                height="18"
                 alt="Github"
                 style="padding-left: 5px" />
             </el-link>
