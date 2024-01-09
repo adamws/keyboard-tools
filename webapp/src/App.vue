@@ -57,16 +57,12 @@ onBeforeUnmount(() => {
                 style="padding-left: 5px" />
             </el-link>
           </el-menu-item>
+          <el-menu-item class="version" disabled> v{{ version }} </el-menu-item>
         </el-menu>
       </el-header>
       <el-main>
         <router-view />
       </el-main>
-      <el-footer>
-        <div style="font-size: var(--el-font-size-extra-small)">
-          version {{ version }}
-        </div>
-      </el-footer>
     </el-container>
   </div>
 </template>
@@ -86,9 +82,13 @@ code {
   background-color: #b3e6ff;
 }
 
-.el-header,
-.el-footer {
+.el-header {
   text-align: center;
+}
+
+.version {
+  cursor: default !important;
+  opacity: 1 !important;
 }
 
 .el-message-box {
