@@ -25,57 +25,58 @@ defineExpose({ getSettings });
 </script>
 
 <template>
-  <el-row>
-    <el-col class="setting-name" :span="4">Matrix:</el-col>
-    <el-col v-for="option in matrixOptions" :span="3">
+  <div class="settings">
+    <span class="setting-name row1">Matrix:</span>
+    <span v-for="option in matrixOptions" class="row1">
       <el-radio v-model="matrixOption" :label="option" :key="option">{{
         option
       }}</el-radio>
-    </el-col>
-  </el-row>
-  <el-row>
-    <el-col class="setting-name" :span="4">Footprints:</el-col>
-    <el-col v-for="option in switchFootprintOptions" :span="3">
+    </span>
+    <span class="setting-name row2">Footprints:</span>
+    <span v-for="option in switchFootprintOptions" class="row2">
       <el-radio v-model="switchFootprint" :label="option" :key="option">{{
         option
       }}</el-radio>
-    </el-col>
-  </el-row>
-  <el-row>
-    <el-col class="setting-name" :span="4">Routing:</el-col>
-    <el-col v-for="option in routingOptions" :span="3">
+    </span>
+    <span class="setting-name row3">Routing:</span>
+    <span v-for="option in routingOptions" class="row3">
       <el-radio v-model="routingOption" :label="option" :key="option">{{
         option
       }}</el-radio>
-    </el-col>
-  </el-row>
-  <el-row>
-    <el-col class="setting-name" :span="4">Controller circuit:</el-col>
-    <el-col v-for="option in controllerCircuitOptions" :span="3">
+    </span>
+    <span class="setting-name row4">Controller circuit:</span>
+    <span v-for="option in controllerCircuitOptions" class="row4">
       <el-radio v-model="controllerCircuit" :label="option" :key="option">
         {{ option }}
-        <span v-if="option != 'None'" style="color: #e6a23c">
+        <span v-if="option != 'None'" style="display: flex; color: #e6a23c">
           (experimental)</span
         >
       </el-radio>
-    </el-col>
-  </el-row>
+    </span>
+  </div>
 </template>
 
 <style scoped>
-@media screen and (max-width: 800px) {
-  .el-row {
-    flex-direction: column;
-  }
-}
-.el-row {
+.settings {
+  display: grid;
+  max-width: 600px;
+  grid-auto-columns: minmax(100px, auto);
+  gap: 10px;
   align-items: center;
-  margin-bottom: 4px;
-}
-.el-col {
-  border-radius: 4px;
 }
 .setting-name {
   cursor: default;
+}
+.row1 {
+  grid-row: 1;
+}
+.row2 {
+  grid-row: 2;
+}
+.row3 {
+  grid-row: 3;
+}
+.row4 {
+  grid-row: 4;
 }
 </style>
