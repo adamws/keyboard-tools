@@ -187,7 +187,8 @@ function uploadLayout() {
   <div v-loading="loadingCfg">
     <div>
       Generate KiCad project with layout from
-      <a href="http://www.keyboard-layout-editor.com">keyboard-layout-editor</a
+      <a href="http://www.keyboard-layout-editor.com" target="_blank"
+        >keyboard-layout-editor</a
       >:
     </div>
     <br />
@@ -207,7 +208,9 @@ function uploadLayout() {
       </span>
       <span id="inspiration-text">
         Looking for inspiration? Check out this
-        <a href="https://adamws.github.io/keyboard-pcbs/">layout gallery</a>.
+        <a href="https://adamws.github.io/keyboard-pcbs/" target="_blank"
+          >layout gallery</a
+        >.
       </span>
     </div>
   </div>
