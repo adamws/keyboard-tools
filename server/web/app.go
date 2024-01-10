@@ -265,7 +265,8 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 		// validate request body and modify if needed
 		if request.Settings.MatrixOption == "Predefined" {
 			if !areKeysAnnotated(request.Layout.Keys) {
-				sendErr(w, http.StatusBadRequest, "Unsupported json layout")
+				sendErr(w, http.StatusBadRequest,
+					"Unsupported json layout, key annotations with matrix positions missing or illegal")
 				return
 			}
 		} else {
