@@ -222,7 +222,7 @@ function uploadLayout() {
     </div>
     <br />
     <div>
-      <PcbRender :source="state.svgSource" />
+      <PcbRender :source="state.svgSource" style="margin-bottom: 10px" />
       <a
         id="download"
         v-bind:href="getResultUrl()"
