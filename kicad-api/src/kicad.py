@@ -7,8 +7,8 @@ import shutil
 from pathlib import Path
 
 import pcbnew
-from kbplacer.defaults import DEFAULT_DIODE_POSITION, ZERO_POSITION
-from kbplacer.element_position import ElementInfo, PositionOption
+from kbplacer.defaults import ZERO_POSITION
+from kbplacer.element_position import ElementInfo, ElementPosition, Point, PositionOption, Side
 from kbplacer.kle_serial import get_keyboard
 from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import TemplateCopier
@@ -22,7 +22,9 @@ __all__ = ["new_pcb"]
 
 
 def run_element_placement(pcb_path, layout, settings):
-    diode = ElementInfo("D{}", PositionOption.DEFAULT, DEFAULT_DIODE_POSITION, "")
+
+    DIODE_POSITION = ElementPosition(Point(5.08, 3.5), 90.0, Side.BACK)
+    diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
     route_switches_with_diodes = settings["routing"] == "Full"
     route_rows_and_columns = settings["routing"] == "Full"
     additional_elements = [
@@ -221,7 +223,7 @@ def new_pcb(task_id, task_request, update_state_callback):
         layout,
         switch_library=settings["switchLibrary"],
         switch_footprint=settings["switchFootprint"],
-        diode_footprint="D_SOD-323F",
+        diode_footprint=settings["diodeFootprint"],
         additional_search_path="/usr/share/kicad/library",
         controller_circuit=settings["controllerCircuit"] == "ATmega32U4",
     )

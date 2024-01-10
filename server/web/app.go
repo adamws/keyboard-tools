@@ -173,6 +173,7 @@ type pcbSettings struct {
 	MatrixOption      string `json:"matrixOption"`
 	SwitchLibrary     string `json:"switchLibrary"`
 	SwitchFootprint   string `json:"switchFootprint"`
+	DiodeFootprint    string `json:"diodeFootprint"`
 	Routing           string `json:"routing"`
 	ControllerCircuit string `json:"controllerCircuit"`
 }

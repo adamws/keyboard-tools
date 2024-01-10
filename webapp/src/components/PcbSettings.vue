@@ -3,11 +3,13 @@ import { ref } from "vue";
 
 const matrixOptions = ["Automatic", "Predefined"];
 const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid"];
+const diodeFootprintOptions = ["SOD-123F", "SOD-323F"];
 const routingOptions = ["Disabled", "Full"];
 const controllerCircuitOptions = ["None", "ATmega32U4"];
 
 const matrixOption = ref("Automatic");
 const switchFootprint = ref("MX");
+const diodeFootprint = ref("SOD-123F");
 const routingOption = ref("Disabled");
 const controllerCircuit = ref("None");
 
@@ -16,6 +18,7 @@ const getSettings = () => {
     matrixOption: matrixOption.value,
     switchLibrary: "kiswitch/keyswitch-kicad-library",
     switchFootprint: switchFootprint.value,
+    diodeFootprint: "D_" + diodeFootprint.value,
     routing: routingOption.value,
     controllerCircuit: controllerCircuit.value,
   };
@@ -32,20 +35,26 @@ defineExpose({ getSettings });
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row2">Footprints:</span>
+    <span class="setting-name row2">Switch Footprint:</span>
     <span v-for="option in switchFootprintOptions" class="row2">
       <el-radio v-model="switchFootprint" :label="option" :key="option">{{
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row3">Routing:</span>
-    <span v-for="option in routingOptions" class="row3">
+    <span class="setting-name row3">Diode Footprint:</span>
+    <span v-for="option in diodeFootprintOptions" class="row3">
+      <el-radio v-model="diodeFootprint" :label="option" :key="option">{{
+        option
+      }}</el-radio>
+    </span>
+    <span class="setting-name row4">Routing:</span>
+    <span v-for="option in routingOptions" class="row4">
       <el-radio v-model="routingOption" :label="option" :key="option">{{
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row4">Controller circuit:</span>
-    <span v-for="option in controllerCircuitOptions" class="row4">
+    <span class="setting-name row5">Controller circuit:</span>
+    <span v-for="option in controllerCircuitOptions" class="row5">
       <el-radio v-model="controllerCircuit" :label="option" :key="option">
         {{ option }}
         <span v-if="option != 'None'" style="display: flex; color: #e6a23c">
@@ -78,5 +87,8 @@ defineExpose({ getSettings });
 }
 .row4 {
   grid-row: 4;
+}
+.row5 {
+  grid-row: 5;
 }
 </style>

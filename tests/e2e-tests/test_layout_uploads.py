@@ -105,12 +105,12 @@ def layout_test_steps(selenium, layout_file, download_dir):
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
-@pytest.mark.parametrize("footprint", ["MX", "Alps", "MX/Alps Hybrid"])
+@pytest.mark.parametrize("switch_footprint", ["MX", "Alps", "MX/Alps Hybrid"])
 @pytest.mark.parametrize("routing", ["Disabled", "Full"])
 @pytest.mark.parametrize("controller_circuit", ["None", "ATmega32U4"])
 def test_correct_layout_no_matrix_predefined(
     layout,
-    footprint,
+    switch_footprint,
     routing,
     controller_circuit,
     selenium,
@@ -121,7 +121,7 @@ def test_correct_layout_no_matrix_predefined(
     test_dir, _ = os.path.splitext(filename)
     layout_file = f"{test_dir}/{layout}.json"
 
-    for option in [footprint, routing, controller_circuit]:
+    for option in [switch_footprint, routing, controller_circuit]:
         span = selenium.find_element("xpath", f"//span[contains(.,'{option}')]")
         span.click()
 
