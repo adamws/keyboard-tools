@@ -221,8 +221,8 @@ def new_pcb(task_id, task_request, update_state_callback):
     update_state_callback(20)
     build_circuit(
         layout,
-        switch_library=settings["switchLibrary"],
         switch_footprint=settings["switchFootprint"],
+        stabilizer_footprint="Mounting_Keyboard_Stabilizer:Stabilizer_Cherry_MX_{:.2f}u",
         diode_footprint=settings["diodeFootprint"],
         additional_search_path="/usr/share/kicad/library",
         controller_circuit=settings["controllerCircuit"] == "ATmega32U4",

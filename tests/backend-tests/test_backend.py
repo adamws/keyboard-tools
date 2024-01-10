@@ -75,7 +75,12 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
         with open(f"{test_dir}/{layout}") as f:
             layouts.append(json.loads(f.read()))
 
-    footprint_options = ["MX", "Alps", "MX/Alps Hybrid"]
+    footprint_options = [
+      "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
+      "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
+      "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+      "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
+    ]
     routing_options = ["Disabled", "Full"]
     controller_circuit_options = ["None", "ATmega32U4"]
 
@@ -98,7 +103,7 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
             "matrixOption": "Automatic",
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
-            "switchLibrary": "kiswitch/keyswitch-kicad-library",
+            "diodeFootprint": "Diode_SMD:D_SOD-123F",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])

@@ -2,7 +2,7 @@
 import { ref } from "vue";
 
 const matrixOptions = ["Automatic", "Predefined"];
-const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid"];
+const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid", "Hotswap Kailh MX"];
 const diodeFootprintOptions = ["SOD-123F", "SOD-323F"];
 const routingOptions = ["Disabled", "Full"];
 const controllerCircuitOptions = ["None", "ATmega32U4"];
@@ -13,12 +13,18 @@ const diodeFootprint = ref("SOD-123F");
 const routingOption = ref("Disabled");
 const controllerCircuit = ref("None");
 
+const footprintsMapping = {
+  "MX": "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
+  "Alps": "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
+  "MX/Alps Hybrid": "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+  "Hotswap Kailh MX": "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
+};
+
 const getSettings = () => {
   return {
     matrixOption: matrixOption.value,
-    switchLibrary: "kiswitch/keyswitch-kicad-library",
-    switchFootprint: switchFootprint.value,
-    diodeFootprint: "D_" + diodeFootprint.value,
+    switchFootprint: footprintsMapping[switchFootprint.value],
+    diodeFootprint: "Diode_SMD:D_" + diodeFootprint.value,
     routing: routingOption.value,
     controllerCircuit: controllerCircuit.value,
   };
@@ -69,7 +75,7 @@ defineExpose({ getSettings });
 .settings {
   display: grid;
   max-width: 600px;
-  grid-auto-columns: minmax(100px, auto);
+  grid-auto-columns: minmax(150px, auto);
   gap: 10px;
   align-items: center;
 }

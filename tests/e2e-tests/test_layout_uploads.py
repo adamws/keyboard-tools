@@ -105,6 +105,8 @@ def layout_test_steps(selenium, layout_file, download_dir):
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
+# `Hotswap Kailh MX` not included, testing all combinations would
+# trigger circle ci limits, better approach needed:
 @pytest.mark.parametrize("switch_footprint", ["MX", "Alps", "MX/Alps Hybrid"])
 @pytest.mark.parametrize("routing", ["Disabled", "Full"])
 @pytest.mark.parametrize("controller_circuit", ["None", "ATmega32U4"])
