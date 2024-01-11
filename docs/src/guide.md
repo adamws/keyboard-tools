@@ -4,7 +4,7 @@ KiCad project generator does not generate PCBs ready for fabrication.
 User needs to design microcontroller circuit and route everything together.
 
 In this guide I'm using `Default 60%` preset from
-[keyboard-layout-editor](www.keyboard-layout-editor.com).
+[keyboard-layout-editor](http://keyboard-layout-editor.com).
 
 ![pcb](./assets/guide/layout60.png)
 
