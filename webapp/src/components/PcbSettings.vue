@@ -35,21 +35,21 @@ defineExpose({ getSettings });
 
 <template>
   <div class="settings">
-    <span class="setting-name row1">Matrix:</span>
-    <span v-for="option in matrixOptions" class="row1">
-      <el-radio v-model="matrixOption" :label="option" :key="option">{{
-        option
-      }}</el-radio>
-    </span>
-    <span class="setting-name row2">Switch Footprint:</span>
-    <span v-for="option in switchFootprintOptions" class="row2">
+    <span class="setting-name row1">Switch Footprint:</span>
+    <span v-for="option in switchFootprintOptions" class="row1">
       <el-radio v-model="switchFootprint" :label="option" :key="option">{{
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row3">Diode Footprint:</span>
-    <span v-for="option in diodeFootprintOptions" class="row3">
+    <span class="setting-name row2">Diode Footprint:</span>
+    <span v-for="option in diodeFootprintOptions" class="row2">
       <el-radio v-model="diodeFootprint" :label="option" :key="option">{{
+        option
+      }}</el-radio>
+    </span>
+    <span class="setting-name row3">Matrix:</span>
+    <span v-for="option in matrixOptions" class="row3">
+      <el-radio v-model="matrixOption" :label="option" :key="option">{{
         option
       }}</el-radio>
     </span>
