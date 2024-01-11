@@ -3,13 +3,13 @@ import { ref } from "vue";
 
 const matrixOptions = ["Automatic", "Predefined"];
 const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid", "Hotswap Kailh MX"];
-const diodeFootprintOptions = ["SOD-123F", "SOD-323F"];
+const diodeFootprintOptions = ["SOD-123", "SOD-123F", "SOD-323", "SOD-323F"];
 const routingOptions = ["Disabled", "Full"];
 const controllerCircuitOptions = ["None", "ATmega32U4"];
 
 const matrixOption = ref("Automatic");
 const switchFootprint = ref("MX");
-const diodeFootprint = ref("SOD-123F");
+const diodeFootprint = ref("SOD-123");
 const routingOption = ref("Disabled");
 const controllerCircuit = ref("None");
 
