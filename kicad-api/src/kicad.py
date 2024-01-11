@@ -25,7 +25,7 @@ def run_element_placement(pcb_path, layout, settings):
 
     DIODE_POSITION = ElementPosition(Point(5.08, 3.5), 90.0, Side.BACK)
     diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
-    route_switches_with_diodes = settings["routing"] == "Full"
+    route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
     route_rows_and_columns = settings["routing"] == "Full"
     additional_elements = [
         ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")

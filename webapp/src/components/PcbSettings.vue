@@ -4,7 +4,7 @@ import { ref } from "vue";
 const matrixOptions = ["Automatic", "Predefined"];
 const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid", "Hotswap Kailh MX"];
 const diodeFootprintOptions = ["SOD-123", "SOD-123F", "SOD-323", "SOD-323F"];
-const routingOptions = ["Disabled", "Full"];
+const routingOptions = ["Disabled", "Switch-Diode only", "Full"];
 const controllerCircuitOptions = ["None", "ATmega32U4"];
 
 const matrixOption = ref("Automatic");
