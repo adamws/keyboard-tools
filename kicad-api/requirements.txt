@@ -7,4 +7,4 @@ skidl==1.0.0
 kle2netlist==0.4.0
 # lxml 5.0.0 breaks PcbDraw: https://github.com/yaqwsx/PcbDraw/issues/157
 lxml==4.9.3
-kbplacer==0.8
+kbplacer==0.9

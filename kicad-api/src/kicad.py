@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pcbnew
 from kbplacer.defaults import ZERO_POSITION
+from kbplacer.edge_generator import build_board_outline
 from kbplacer.element_position import ElementInfo, ElementPosition, Point, PositionOption, Side
-from kbplacer.kle_serial import get_keyboard
 from kbplacer.key_placer import KeyPlacer
-from kbplacer.template_copier import TemplateCopier
+from kbplacer.template_copier import copy_from_template_to_board
 from kinet2pcb import kinet2pcb
 from kle2netlist.skidl import build_circuit, generate_netlist
 from pcbdraw.plot import PcbPlotter
@@ -21,9 +21,9 @@ from skidl.logger import erc_logger as skidl_erc_logger
 __all__ = ["new_pcb"]
 
 
-def run_element_placement(pcb_path, layout, settings):
-
-    DIODE_POSITION = ElementPosition(Point(5.08, 3.5), 90.0, Side.BACK)
+def run_element_placement_and_routing(board: pcbnew.BOARD, layout, settings):
+    DIODE_POSITION = ElementPosition(Point(5.08, 4), 90.0, Side.BACK)
+    switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
     diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
     route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
     route_rows_and_columns = settings["routing"] == "Full"
@@ -31,64 +31,15 @@ def run_element_placement(pcb_path, layout, settings):
         ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")
     ]
 
-    board = pcbnew.LoadBoard(pcb_path)
-
     placer = KeyPlacer(board, (19.05, 19.05))
     placer.run(
         layout,
-        "SW{}",
+        switch,
         diode,
         route_switches_with_diodes,
         route_rows_and_columns,
         additional_elements,
     )
-
-    if settings["controllerCircuit"] == "ATmega32U4":
-        template_path = str(
-            Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")
-        )
-        copier = TemplateCopier(board, template_path, route_rows_and_columns)
-        copier.run()
-
-    pcbnew.Refresh()
-    pcbnew.SaveBoard(pcb_path, board)
-
-
-def add_edge_cuts(pcb_path):
-    try:
-        board = pcbnew.LoadBoard(pcb_path)
-        positions = [
-            footprint.GetPosition()
-            for footprint in board.GetFootprints()
-            if re.match(r"^SW\d+$", footprint.GetReference())
-        ]
-        xvals = [position.x for position in positions]
-        yvals = [position.y for position in positions]
-        xmin = min(xvals) - pcbnew.FromMM(12)
-        xmax = max(xvals) + pcbnew.FromMM(12)
-        ymin = min(yvals) - pcbnew.FromMM(12)
-        ymax = max(yvals) + pcbnew.FromMM(12)
-        corners = [
-            pcbnew.wxPoint(xmin, ymin),
-            pcbnew.wxPoint(xmax, ymin),
-            pcbnew.wxPoint(xmax, ymax),
-            pcbnew.wxPoint(xmin, ymax),
-        ]
-        for i in range(len(corners)):
-            start = corners[i]
-            end = corners[(i + 1) % len(corners)]
-            segment = pcbnew.PCB_SHAPE(board)
-            segment.SetShape(pcbnew.SHAPE_T_SEGMENT)
-            segment.SetLayer(pcbnew.Edge_Cuts)
-            segment.SetStart(pcbnew.VECTOR2I(start))
-            segment.SetEnd(pcbnew.VECTOR2I(end))
-            board.Add(segment)
-
-        pcbnew.Refresh()
-        pcbnew.SaveBoard(pcb_path, board)
-    except Exception as err:
-        msg = "Adding egde cuts failed"
-        raise Exception(msg) from err
 
 
 def generate_render(pcb_path: Path):
@@ -238,12 +189,29 @@ def new_pcb(task_id, task_request, update_state_callback):
     kinet2pcb(netlist_file, pcb_file, libraries)
 
     update_state_callback(40)
-    run_element_placement(pcb_file, layout, settings)
+    board = pcbnew.LoadBoard(pcb_file)
+
+    # do template first because otherwise we sometimes get segmentation
+    # fault on pcbnew.SaveBoard when routing enabled, most likely there is a problem
+    # with kbplacer which should be solved, for now this workaround is ok...
+    if settings["controllerCircuit"] == "ATmega32U4":
+        template_path = str(
+            Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")
+        )
+        route_template = settings["routing"] == "Full"
+        copy_from_template_to_board(board, template_path, route_template)
+
 
     update_state_callback(50)
-    add_edge_cuts(pcb_file)
+    run_element_placement_and_routing(board, layout_file, settings)
 
     update_state_callback(60)
+    build_board_outline(board, 5, "SW{}")
+
+    pcbnew.Refresh()
+    pcbnew.SaveBoard(pcb_file, board)
+
+    update_state_callback(70)
     generate_render(Path(pcb_file))
 
     update_state_callback(80)

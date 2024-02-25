@@ -1,4 +1,18 @@
-FROM admwscki/kicad-kbplacer:0.8
+FROM admwscki/kicad-kbplacer-primary:7.0.11-mantic
+
+RUN userdel -r ubuntu
+
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o kicad \
+  && useradd -u $UID -g $GID --create-home --shell /bin/bash kicad \
+  && usermod -m -d /kicad kicad
+
+USER kicad
+WORKDIR /kicad
+
+ARG PLUGINS_PATH=/kicad/.local/share/kicad/7.0/3rdparty/plugins
+RUN mkdir -p $PLUGINS_PATH
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
@@ -17,8 +31,7 @@ RUN mkdir templates \
   && cd templates \
   && wget https://raw.githubusercontent.com/adamws/kle2netlist/v0.2/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
 
-COPY requirements.txt .
+COPY --chown=kicad requirements.txt .
 RUN pip3 install -r requirements.txt
 
-COPY src /kicad/src
-
+COPY --chown=kicad src /kicad/src
