@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pcbnew
@@ -14,7 +15,6 @@ from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import copy_from_template_to_board
 from kinet2pcb import kinet2pcb
 from kle2netlist.skidl import build_circuit, generate_netlist
-from pcbdraw.plot import PcbPlotter
 from skidl.logger import logger as skidl_logger
 from skidl.logger import erc_logger as skidl_erc_logger
 
@@ -42,7 +42,7 @@ def run_element_placement_and_routing(board: pcbnew.BOARD, layout, settings):
     )
 
 
-def generate_render(pcb_path: Path):
+def generate_render(pcb_path: Path, log_path):
     # render is performed on copy of pcb from which all parts outside board edge
     # were removed. This is due to microcontroller circuit which may be present
     # but its placement is outside board outline
@@ -68,26 +68,30 @@ def generate_render(pcb_path: Path):
         msg = "Removing footprints before render generation failed"
         raise Exception(msg) from err
 
-    plotter = PcbPlotter(pcb_for_render)
-    plotter.setup_arbitrary_data_path(".")
-    plotter.setup_env_data_path()
-    plotter.setup_builtin_data_path()
-    plotter.setup_global_data_path()
+    pcbdraw_log = open(log_path, "a")
 
-    image = plotter.plot()
-    image.write(f"{project_full_path}/../logs/front.svg")
+    # running pcbdraw in subprocess because importing it directly
+    # interferes with pcbnew due to buggy pcbnewTransition which attempts
+    # to provide kicad version independent interface to pcbnew but instead makes some
+    # pcbnew functionality broken (in case of this application, kbplacer routing
+    # would be wrong)
+    def _pcbdraw(args):
+        subprocess.run(
+            ["pcbdraw", "plot"] + args,
+            stdout=pcbdraw_log,
+            stderr=subprocess.STDOUT,
+        )
 
-    plotter.render_back = True
-    plotter.mirror = True
-    image = plotter.plot()
-    image.write(f"{project_full_path}/../logs/back.svg")
+    _pcbdraw([pcb_for_render, f"{project_full_path}/../logs/front.svg"])
+    _pcbdraw(["--side", "back", "--mirror", pcb_for_render, f"{project_full_path}/../logs/back.svg"])
+
+    pcbdraw_log.close()
 
     for f in glob.glob(f"{project_full_path}/render*"):
         os.remove(f)
 
 
 def configure_loggers(log_path):
-    log_path = f"{log_path}/build.log"
     ch = logging.FileHandler(log_path, mode="w")
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s"))
@@ -155,9 +159,10 @@ def new_pcb(task_id, task_request, update_state_callback):
     project_full_path = str(Path(task_id).joinpath(project_name).absolute())
     Path(project_full_path).mkdir(parents=True, exist_ok=True)
 
-    log_path = str(Path(task_id).joinpath("logs").absolute())
-    os.mkdir(log_path)
+    log_dir = str(Path(task_id).joinpath("logs").absolute())
+    os.mkdir(log_dir)
 
+    log_path = f"{log_dir}/build.log"
     configure_loggers(log_path)
 
     update_state_callback(10)
@@ -212,11 +217,9 @@ def new_pcb(task_id, task_request, update_state_callback):
     pcbnew.SaveBoard(pcb_file, board)
 
     update_state_callback(70)
-    generate_render(Path(pcb_file))
+    generate_render(Path(pcb_file), log_path)
 
     update_state_callback(80)
     shutil.make_archive(task_id, "zip", task_id)
 
-    return log_path
-
-
+    return log_dir
