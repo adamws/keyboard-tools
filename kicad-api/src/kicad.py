@@ -15,13 +15,14 @@ from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import copy_from_template_to_board
 from kinet2pcb import kinet2pcb
 from kle2netlist.skidl import build_circuit, generate_netlist
+from pathvalidate import sanitize_filename, sanitize_filepath
 from skidl.logger import logger as skidl_logger
 from skidl.logger import erc_logger as skidl_erc_logger
 
 __all__ = ["new_pcb"]
 
 
-def run_element_placement_and_routing(board: pcbnew.BOARD, layout, settings):
+def run_element_placement_and_routing(board: pcbnew.BOARD, layout: Path, settings):
     DIODE_POSITION = ElementPosition(Point(5.08, 4), 90.0, Side.BACK)
     switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
     diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
@@ -42,7 +43,7 @@ def run_element_placement_and_routing(board: pcbnew.BOARD, layout, settings):
     )
 
 
-def generate_render(pcb_path: Path, log_path):
+def generate_render(pcb_path: Path, log_path: Path):
     # render is performed on copy of pcb from which all parts outside board edge
     # were removed. This is due to microcontroller circuit which may be present
     # but its placement is outside board outline
@@ -82,16 +83,18 @@ def generate_render(pcb_path: Path, log_path):
             stderr=subprocess.STDOUT,
         )
 
-    _pcbdraw([pcb_for_render, f"{project_full_path}/../logs/front.svg"])
-    _pcbdraw(["--side", "back", "--mirror", pcb_for_render, f"{project_full_path}/../logs/back.svg"])
+    _pcbdraw([pcb_for_render, log_path.parent / "front.svg"])
+    _pcbdraw(
+        ["--side", "back", "--mirror", pcb_for_render, log_path.parent / "back.svg"]
+    )
 
     pcbdraw_log.close()
 
-    for f in glob.glob(f"{project_full_path}/render*"):
-        os.remove(f)
+    for f in glob.glob("render*", root_dir=project_full_path):
+        os.remove(project_full_path / f)
 
 
-def configure_loggers(log_path):
+def configure_loggers(log_path: Path):
     ch = logging.FileHandler(log_path, mode="w")
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s"))
@@ -156,21 +159,23 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     project_name = layout["meta"]["name"]
     project_name = "keyboard" if project_name == "" else project_name
-    project_full_path = str(Path(task_id).joinpath(project_name).absolute())
-    Path(project_full_path).mkdir(parents=True, exist_ok=True)
+    project_name = sanitize_filename(project_name)
+    project_dir_name = sanitize_filepath(project_name)
+    project_full_path = Path(task_id).joinpath(project_dir_name).absolute()
+    project_full_path.mkdir(parents=True, exist_ok=True)
 
-    log_dir = str(Path(task_id).joinpath("logs").absolute())
+    log_dir = Path(task_id).joinpath("logs").absolute()
     os.mkdir(log_dir)
 
-    log_path = f"{log_dir}/build.log"
+    log_path = log_dir / "build.log"
     configure_loggers(log_path)
 
     update_state_callback(10)
     sanitize_keys(layout["keys"])
 
-    pcb_file = f"{project_full_path}/{project_name}.kicad_pcb"
-    netlist_file = f"{project_full_path}/{project_name}.net"
-    layout_file = f"{project_full_path}/{project_name}_layout.json"
+    pcb_file = project_full_path / (project_name + ".kicad_pcb")
+    netlist_file = project_full_path / (project_name + ".net")
+    layout_file = project_full_path / (project_name + ".json")
     with open(layout_file, "w") as out:
         out.write(json.dumps(layout, indent=2))
 
@@ -183,7 +188,7 @@ def new_pcb(task_id, task_request, update_state_callback):
         additional_search_path="/usr/share/kicad/library",
         controller_circuit=settings["controllerCircuit"] == "ATmega32U4",
     )
-    generate_netlist(netlist_file)
+    generate_netlist(str(netlist_file))
 
     update_state_callback(30)
     libraries = ["/usr/share/kicad/footprints"]
@@ -191,7 +196,7 @@ def new_pcb(task_id, task_request, update_state_callback):
     for path in footprints.iterdir():
         if path.is_dir():
             libraries.append(str(path))
-    kinet2pcb(netlist_file, pcb_file, libraries)
+    kinet2pcb(str(netlist_file), pcb_file, libraries)
 
     update_state_callback(40)
     board = pcbnew.LoadBoard(pcb_file)
@@ -217,7 +222,7 @@ def new_pcb(task_id, task_request, update_state_callback):
     pcbnew.SaveBoard(pcb_file, board)
 
     update_state_callback(70)
-    generate_render(Path(pcb_file), log_path)
+    generate_render(pcb_file, log_path)
 
     update_state_callback(80)
     shutil.make_archive(task_id, "zip", task_id)
