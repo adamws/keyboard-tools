@@ -22,6 +22,15 @@ from skidl.logger import erc_logger as skidl_erc_logger
 __all__ = ["new_pcb"]
 
 
+def run_controller_circuit_template_copy(board: pcbnew.BOARD, settings):
+    if settings["controllerCircuit"] == "ATmega32U4":
+        template_path = str(
+            Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")
+        )
+        route_template = settings["routing"] == "Full"
+        copy_from_template_to_board(board, template_path, route_template)
+
+
 def run_element_placement_and_routing(board: pcbnew.BOARD, layout: Path, settings):
     DIODE_POSITION = ElementPosition(Point(5.08, 4), 90.0, Side.BACK)
     switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
@@ -198,19 +207,13 @@ def new_pcb(task_id, task_request, update_state_callback):
             libraries.append(str(path))
     kinet2pcb(str(netlist_file), pcb_file, libraries)
 
-    update_state_callback(40)
     board = pcbnew.LoadBoard(pcb_file)
 
     # do template first because otherwise we sometimes get segmentation
     # fault on pcbnew.SaveBoard when routing enabled, most likely there is a problem
     # with kbplacer which should be solved, for now this workaround is ok...
-    if settings["controllerCircuit"] == "ATmega32U4":
-        template_path = str(
-            Path.home().joinpath("templates/atmega32u4-au-v1.kicad_pcb")
-        )
-        route_template = settings["routing"] == "Full"
-        copy_from_template_to_board(board, template_path, route_template)
-
+    update_state_callback(40)
+    run_controller_circuit_template_copy(board, settings)
 
     update_state_callback(50)
     run_element_placement_and_routing(board, layout_file, settings)
