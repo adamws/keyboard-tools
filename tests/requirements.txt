@@ -1,6 +1,6 @@
-selenium==4.16.0
-Pillow==10.2.0
-pytest==7.4.4
+selenium==4.19.0
+Pillow==10.3.0
+pytest==8.1.1
 # using current master because 4.1.1 has broken adding extras in teardown:
 git+https://github.com/pytest-dev/pytest-html@e7aca52e494d24fcb82fac928ddd61f64afeb405
-pytest-selenium==4.0.2
+pytest-selenium==4.1.0
