@@ -10,7 +10,13 @@ from pathlib import Path
 import pcbnew
 from kbplacer.defaults import ZERO_POSITION
 from kbplacer.edge_generator import build_board_outline
-from kbplacer.element_position import ElementInfo, ElementPosition, Point, PositionOption, Side
+from kbplacer.element_position import (
+    ElementInfo,
+    ElementPosition,
+    Point,
+    PositionOption,
+    Side,
+)
 from kbplacer.key_placer import KeyPlacer
 from kbplacer.template_copier import copy_from_template_to_board
 from kinet2pcb import kinet2pcb
@@ -106,7 +112,9 @@ def generate_render(pcb_path: Path, log_path: Path):
 def configure_loggers(log_path: Path):
     ch = logging.FileHandler(log_path, mode="w")
     ch.setLevel(logging.DEBUG)
-    ch.setFormatter(logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s"))
+    ch.setFormatter(
+        logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s")
+    )
 
     dependencies_loggers = [
         logging.getLogger("kbplacer"),
@@ -160,22 +168,42 @@ def sanitize_keys(keys):
     keys.sort(key=sort_key)
 
 
+def create_work_dir(task_id: str) -> Path:
+    work_dir = Path(task_id)
+    work_dir.mkdir()
+    return work_dir.absolute()
+
+
+def get_project_name(layout_name: str) -> str:
+    project_name = "keyboard" if layout_name == "" else layout_name
+    return sanitize_filename(project_name)
+
+
+def create_kicad_work_dir(work_dir: Path, project_name: str) -> Path:
+    project_dir_name = sanitize_filepath(project_name)
+    project_dir = work_dir / project_dir_name
+    project_dir.mkdir()
+    return project_dir.absolute()
+
+
+def create_log_dir(work_dir: Path) -> Path:
+    log_dir = work_dir / "logs"
+    log_dir.mkdir()
+    return log_dir.absolute()
+
+
 def new_pcb(task_id, task_request, update_state_callback):
     update_state_callback(0)
 
     layout = task_request["layout"]
     settings = task_request["settings"]
 
-    project_name = layout["meta"]["name"]
-    project_name = "keyboard" if project_name == "" else project_name
-    project_name = sanitize_filename(project_name)
-    project_dir_name = sanitize_filepath(project_name)
-    project_full_path = Path(task_id).joinpath(project_dir_name).absolute()
-    project_full_path.mkdir(parents=True, exist_ok=True)
+    work_dir = create_work_dir(task_id)
 
-    log_dir = Path(task_id).joinpath("logs").absolute()
-    os.mkdir(log_dir)
+    project_name = get_project_name(layout["meta"]["name"])
+    project_full_path = create_kicad_work_dir(work_dir, project_name)
 
+    log_dir = create_log_dir(work_dir)
     log_path = log_dir / "build.log"
     configure_loggers(log_path)
 

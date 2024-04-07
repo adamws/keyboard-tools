@@ -16,29 +16,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def assert_zip_content(zipfile):
+def assert_zip_content(zipfile, expected_name):
     files_in_zip = zipfile.namelist()
     assert "logs/build.log" in files_in_zip
     expected_in_keyboard_dir = [
-        "keyboard.net",
-        "keyboard.kicad_pro",
-        "keyboard.kicad_pcb",
+        f"{expected_name}.net",
+        f"{expected_name}.kicad_pro",
+        f"{expected_name}.kicad_pcb",
     ]
     for name in expected_in_keyboard_dir:
-        assert f"keyboard/{name}" in files_in_zip
+        assert f"{expected_name}/{name}" in files_in_zip
 
 
-def assert_kicad_log(log_file, layout_file):
-    layout = None
-    with open(layout_file) as f:
-        layout = json.loads(f.read())
-
+def assert_kicad_log(log_file, layout):
     # very simplistic parse of keyboard layout file just to get number of keys:
     number_of_keys = 0
     for row in layout:
         for el in row:
             # strings represents keys
-            if type(el) == str:
+            if type(row) == list and type(el) == str:
                 number_of_keys += 1
             # other objects represents key properties, don't care about them yet
 
@@ -94,14 +90,17 @@ def wait_and_download(selenium, download_dir):
     return download_file_path
 
 
-def layout_test_steps(selenium, layout_file, download_dir):
+def layout_test_steps(selenium, layout_file, expected_name, download_dir):
+    with open(layout_file) as f:
+        layout = json.loads(f.read())
+
     upload_layout(selenium, layout_file)
     download_file = wait_and_download(selenium, download_dir)
 
     with zipfile.ZipFile(download_file, "r") as result:
-        assert_zip_content(result)
+        assert_zip_content(result, expected_name)
         with result.open("logs/build.log") as log_file:
-            assert_kicad_log(log_file, layout_file)
+            assert_kicad_log(log_file, layout)
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
@@ -127,7 +126,7 @@ def test_correct_layout_no_matrix_predefined(
         span = selenium.find_element("xpath", f"//span[contains(.,'{option}')]")
         span.click()
 
-    layout_test_steps(selenium, layout_file, download_dir)
+    layout_test_steps(selenium, layout_file, "keyboard", download_dir)
 
 
 def test_layout_with_various_key_sizes(selenium, request, download_dir):
@@ -135,7 +134,19 @@ def test_layout_with_various_key_sizes(selenium, request, download_dir):
     test_dir, _ = os.path.splitext(filename)
     layout_file = f"{test_dir}/sizes.json"
 
-    layout_test_steps(selenium, layout_file, download_dir)
+    layout_test_steps(selenium, layout_file, "keyboard", download_dir)
+
+
+def test_layout_with_name(selenium, request, download_dir):
+    """Test if layout name sanitization works.
+    Some characters are illegal and should be removed, for example to
+    prevent creating directories outside allowed work directory.
+    """
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_name.json"
+
+    layout_test_steps(selenium, layout_file, "..60% &layout", download_dir)
 
 
 def test_incorrect_layout_expect_error_window(tmpdir, selenium):
