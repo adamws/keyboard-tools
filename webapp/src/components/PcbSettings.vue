@@ -12,6 +12,7 @@ const switchFootprint = ref("MX");
 const diodeFootprint = ref("SOD-123");
 const routingOption = ref("Disabled");
 const controllerCircuit = ref("None");
+const keyDistance = ref([19.05, 19.05]);
 
 const footprintsMapping = {
   "MX": "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
@@ -27,6 +28,8 @@ const getSettings = () => {
     diodeFootprint: "Diode_SMD:D_" + diodeFootprint.value,
     routing: routingOption.value,
     controllerCircuit: controllerCircuit.value,
+    keyDistance:
+      keyDistance.value[0].toString() + " " + keyDistance.value[1].toString(),
   };
 };
 
@@ -68,6 +71,18 @@ defineExpose({ getSettings });
         >
       </el-radio>
     </span>
+    <span class="setting-name row6">Key distance:</span>
+    <span v-for="(item, index) in ['X', 'Y']" class="row6">
+      <el-text style="margin-left: 2px; margin-right: 9px">{{ item }}:</el-text>
+      <el-input-number
+        v-model="keyDistance[index]"
+        :step="0.05"
+        :min="0"
+        :max="100"
+        size="small"
+        controls-position="right"
+        style="width: 100px" />
+    </span>
   </div>
 </template>
 
@@ -96,5 +111,8 @@ defineExpose({ getSettings });
 }
 .row5 {
   grid-row: 5;
+}
+.row6 {
+  grid-row: 6;
 }
 </style>

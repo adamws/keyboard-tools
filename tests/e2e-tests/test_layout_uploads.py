@@ -156,6 +156,20 @@ def test_layout_with_various_key_sizes(selenium, request, download_dir):
     layout_test_steps(selenium, layout_file, "keyboard", download_dir)
 
 
+def test_layout_with_non_default_key_distance(selenium, request, download_dir):
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2.json"
+
+    key_distance = (18.05, 20.005)
+    for i, distance in enumerate(key_distance):
+        field = selenium.find_element("xpath", f"(//input[@type=\"number\"])[{i+1}]")
+        field.clear()
+        field.send_keys(str(distance))
+
+    layout_test_steps(selenium, layout_file, "keyboard", download_dir, key_distance)
+
+
 def test_layout_with_name(selenium, request, download_dir):
     """Test if layout name sanitization works.
     Some characters are illegal and should be removed, for example to

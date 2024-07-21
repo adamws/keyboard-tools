@@ -175,6 +175,7 @@ type pcbSettings struct {
 	DiodeFootprint    string `json:"diodeFootprint"`
 	Routing           string `json:"routing"`
 	ControllerCircuit string `json:"controllerCircuit"`
+	KeyDistance       string `json:"keyDistance"`
 }
 
 type taskStatus struct {

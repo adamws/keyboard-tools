@@ -104,6 +104,7 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
             "diodeFootprint": "Diode_SMD:D_SOD-123F",
+            "keyDistance": "19.05 19.05",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])

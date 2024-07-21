@@ -37,17 +37,35 @@ def run_controller_circuit_template_copy(board: pcbnew.BOARD, settings):
         copy_from_template_to_board(board, template_path, route_template)
 
 
-def run_element_placement_and_routing(board: pcbnew.BOARD, layout: Path, settings):
+def get_key_distance(settings):
+    value = settings["keyDistance"]
+    try:
+        key_distance = tuple(map(float, value.split(" ")))
+    except Exception as err:
+        msg = f"Could not parse `keyDistance` value: {value}"
+        raise Exception(msg) from err
+    if len(key_distance) != 2:
+        msg = f"Too many parts in `keyDistance` value: {value}"
+        raise Exception(msg)
+    return key_distance
+
+
+def run_element_placement_and_routing(
+    board: pcbnew.BOARD,
+    layout: Path,
+    *,
+    key_distance,
+    route_switches_with_diodes,
+    route_rows_and_columns,
+):
     DIODE_POSITION = ElementPosition(Point(5.08, 4), 90.0, Side.BACK)
     switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
     diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
-    route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
-    route_rows_and_columns = settings["routing"] == "Full"
     additional_elements = [
         ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")
     ]
 
-    placer = KeyPlacer(board, (19.05, 19.05))
+    placer = KeyPlacer(board, key_distance)
     placer.run(
         layout,
         switch,
@@ -120,7 +138,7 @@ def configure_loggers(log_path: Path):
         logging.getLogger("kbplacer"),
         logging.getLogger("kinet2pcb"),
         skidl_logger,
-        skidl_erc_logger
+        skidl_erc_logger,
     ]
     for logger in dependencies_loggers:
         for handler in logger.handlers:
@@ -165,6 +183,7 @@ def sanitize_keys(keys):
 
     def sort_key(item):
         return tuple(map(int, item["labels"][0].split(",")))
+
     keys.sort(key=sort_key)
 
 
@@ -197,6 +216,10 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     layout = task_request["layout"]
     settings = task_request["settings"]
+
+    key_distance = get_key_distance(settings)
+    route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
+    route_rows_and_columns = settings["routing"] == "Full"
 
     work_dir = create_work_dir(task_id)
 
@@ -244,7 +267,13 @@ def new_pcb(task_id, task_request, update_state_callback):
     run_controller_circuit_template_copy(board, settings)
 
     update_state_callback(50)
-    run_element_placement_and_routing(board, layout_file, settings)
+    run_element_placement_and_routing(
+        board,
+        layout_file,
+        key_distance=key_distance,
+        route_switches_with_diodes=route_switches_with_diodes,
+        route_rows_and_columns=route_rows_and_columns,
+    )
 
     update_state_callback(60)
     build_board_outline(board, 5, "SW{}")
