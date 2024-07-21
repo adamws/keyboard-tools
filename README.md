@@ -18,7 +18,7 @@ Convert layout from [keyboard-layout-editor](http://www.keyboard-layout-editor.c
 
 - web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
 - uses [kiswitch library](https://github.com/kiswitch/kiswitch)
-- three available switch footprints: Cherry MX, Alps and Cherry MX/Alps hybrid
+- four available switch footprints: Cherry MX, Alps, Cherry MX/Alps hybrid and Hotswap Kailh MX
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
 - supports basic routing
 
