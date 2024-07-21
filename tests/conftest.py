@@ -96,7 +96,8 @@ def driver(request, driver_option, selenium_data_path):
     options.set_preference("browser.download.dir", f"{selenium_data_path}/downloads")
     if driver_option == "remote":
         _driver = webdriver.Remote(
-            command_executor=request.config.getoption("--remote-executor"), options=options
+            command_executor=request.config.getoption("--remote-executor"),
+            options=options,
         )
         _driver.set_window_size(1360, 1800)
     else:
@@ -174,12 +175,15 @@ def download_dir(request, driver_option, selenium_data_path):
         # if selenium is run inside container, then downloaded file file has different file owner
         # than process running tests. The workaround is to run rm in running container.
         container_details = subprocess.run(
-            "docker container ls --all | grep 'selenium/standalone-firefox.*tests_firefox_[0-9]\+'",
-            shell=True, capture_output=True
+            "docker container ls --all | grep 'selenium/standalone-firefox.*tests[-_]firefox[-_][0-9]\+'",
+            shell=True,
+            capture_output=True,
         )
         if container_details.returncode == 0:
             container_id = container_details.stdout.decode().split(" ", 1)[0]
-            run_command_in_container(container_id, f"rm -rf {selenium_data_path}/downloads")
+            run_command_in_container(
+                container_id, f"rm -rf {selenium_data_path}/downloads"
+            )
         else:
             raise Exception("Could not clean up downloads")
     else:
