@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from "vue";
+import { QuestionFilled } from "@element-plus/icons-vue";
 
 const matrixOptions = ["Automatic", "Predefined"];
 const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid", "Hotswap Kailh MX"];
@@ -71,7 +72,19 @@ defineExpose({ getSettings });
         >
       </el-radio>
     </span>
-    <span class="setting-name row6">Key distance:</span>
+    <span class="setting-name row6"
+      >Key distance:
+      <el-tooltip
+        class="box-item"
+        effect="dark"
+        content="
+      Distance (in millimeters) of 1U between two switches in X and Y directions.
+      ">
+        <el-icon :size="16" color="#cecece" style="vertical-align: bottom">
+          <QuestionFilled />
+        </el-icon>
+      </el-tooltip>
+    </span>
     <span v-for="(item, index) in ['X', 'Y']" class="row6">
       <el-text style="margin-left: 2px; margin-right: 9px">{{ item }}:</el-text>
       <el-input-number
