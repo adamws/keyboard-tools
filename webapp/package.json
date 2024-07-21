@@ -13,25 +13,25 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial.git",
-    "acorn": "^8.11.3",
-    "axios": "^1.6.8",
-    "core-js": "^3.36.1",
-    "element-plus": "^2.6.3",
+    "acorn": "^8.12.1",
+    "axios": "^1.7.2",
+    "core-js": "^3.37.1",
+    "element-plus": "^2.7.7",
     "file-saver": "^2.0.5",
     "prismjs": "^1.29.0",
     "vue-prism-editor": "^2.0.0-alpha.2",
-    "vue-router": "^4.3.0"
+    "vue-router": "^4.4.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "eslint": "^8.57.0",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "eslint": "^9.7.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-vue": "^9.22.0",
+    "eslint-plugin-vue": "^9.27.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.2.5",
-    "typescript": "^5.4.4",
-    "vite": "^5.2.8",
-    "vue": "^3.4.21"
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vue": "^3.4.33"
   },
   "browserslist": [
     "> 1%",

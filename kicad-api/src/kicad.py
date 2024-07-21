@@ -13,7 +13,6 @@ from kbplacer.edge_generator import build_board_outline
 from kbplacer.element_position import (
     ElementInfo,
     ElementPosition,
-    Point,
     PositionOption,
     Side,
 )
@@ -58,7 +57,7 @@ def run_element_placement_and_routing(
     route_switches_with_diodes,
     route_rows_and_columns,
 ):
-    DIODE_POSITION = ElementPosition(Point(5.08, 4), 90.0, Side.BACK)
+    DIODE_POSITION = ElementPosition(5.08, 4, 90.0, Side.BACK)
     switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
     diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
     additional_elements = [
