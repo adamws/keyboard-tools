@@ -28,7 +28,18 @@ def assert_zip_content(zipfile, expected_name):
         assert f"{expected_name}/{name}" in files_in_zip
 
 
-def assert_kicad_log(log_file, layout):
+def extract_distances(log_message):
+    pattern = r"distance:\s(\d+)/(\d+)"
+    match = re.search(pattern, log_message)
+    if match:
+        distance1 = int(match.group(1))
+        distance2 = int(match.group(2))
+        return distance1, distance2
+    else:
+        return None
+
+
+def assert_kicad_log(log_file, layout, key_distance):
     # very simplistic parse of keyboard layout file just to get number of keys:
     number_of_keys = 0
     for row in layout:
@@ -45,8 +56,14 @@ def assert_kicad_log(log_file, layout):
     # check if expected number of keys are placed in log in expected order:
     next_key = 1
     for line in log_lines:
-        if f"Setting SW{next_key} footprint position:" in line.decode("utf-8"):
+        decoded = line.decode("utf-8")
+        if f"Setting SW{next_key} footprint position:" in decoded:
             next_key += 1
+        elif "Set key 1U distance: " in decoded:
+            distances = extract_distances(decoded)
+            assert distances
+            for i in [0, 1]:
+                assert distances[i] == key_distance[i] * 1000000
 
     assert next_key == number_of_keys + 1
 
@@ -90,7 +107,9 @@ def wait_and_download(selenium, download_dir):
     return download_file_path
 
 
-def layout_test_steps(selenium, layout_file, expected_name, download_dir):
+def layout_test_steps(
+    selenium, layout_file, expected_name, download_dir, key_distance=(19.05, 19.05)
+):
     with open(layout_file) as f:
         layout = json.loads(f.read())
 
@@ -100,7 +119,7 @@ def layout_test_steps(selenium, layout_file, expected_name, download_dir):
     with zipfile.ZipFile(download_file, "r") as result:
         assert_zip_content(result, expected_name)
         with result.open("logs/build.log") as log_file:
-            assert_kicad_log(log_file, layout)
+            assert_kicad_log(log_file, layout, key_distance)
 
 
 @pytest.mark.parametrize("layout", ["2x2", "arisu"])
