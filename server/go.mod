@@ -8,7 +8,7 @@ require (
 	github.com/gocelery/gocelery v0.0.0-20201111034804-825d89059344
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/gorilla/mux v1.8.1
-	github.com/minio/minio-go/v7 v7.0.74
+	github.com/minio/minio-go/v7 v7.0.75
 )
 
 require (
@@ -24,9 +24,9 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
 	github.com/streadway/amqp v1.1.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
