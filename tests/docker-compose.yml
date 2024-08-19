@@ -1,6 +1,6 @@
 services:
   firefox:
-    image: selenium/standalone-firefox:4.16.1
+    image: selenium/standalone-firefox:4.23.1
     shm_size: 2gb
     volumes:
       - ./data:/home/seluser/data
