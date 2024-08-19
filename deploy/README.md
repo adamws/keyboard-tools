@@ -3,7 +3,7 @@
 Run
 
 ``` bash
-docker-compose up
+docker compose up
 ```
 
 Application will be accessible at `https://localhost`.
@@ -22,7 +22,7 @@ DOMAIN=<domain poiting to server>
 and run:
 
 ```
-docker-compose up
+docker compose up
 ```
 
 Traefik will also expose other services:

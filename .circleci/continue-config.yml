@@ -18,7 +18,7 @@ parameters:
 jobs:
   build-test-deploy:
     machine:
-      image: ubuntu-2004:2022.10.1
+      image: ubuntu-2404:2024.05.1
     steps:
       - checkout
       - run:
@@ -32,39 +32,29 @@ jobs:
             export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
             docker build -t ${WORKER_IMAGE} -f kicad-api/Dockerfile kicad-api
       - run:
-          name: Install docker Compose
-          environment:
-            COMPOSE_VERSION: '1.29.2'
-          command: |
-            curl -L \
-              "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
-              -o ~/docker-compose
-            chmod +x ~/docker-compose
-            sudo mv ~/docker-compose /usr/local/bin/docker-compose
-      - run:
           name: Start docker compose for tests
           working_directory: tests
           command: |
             export TAG=circleci
-            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml up -d
+            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml up -d
       - restore_cache:
           key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
       - run:
           name: Install python deps in a venv
           working_directory: tests
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
+            python -m venv .env
+            . .env/bin/activate
+            python -m pip install -r requirements.txt
       - save_cache:
           key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
           paths:
-            - "tests/venv"
+            - "tests/.env"
       - run:
           name: Run tests
           working_directory: tests
           command: |
-            . venv/bin/activate
+            . .env/bin/activate
             ./wait-for-selenium.sh pytest --junitxml=test-results/pytest/results.xml
       - run:
           name: Get docker compose logs
@@ -72,14 +62,14 @@ jobs:
           when: always
           command: |
             export TAG=circleci
-            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml logs
+            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml logs
       - run:
           name: Stop docker compose
           working_directory: tests
           when: always
           command: |
             export TAG=circleci
-            docker-compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml stop
+            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml stop
       - store_artifacts:
           path: tests/report.html
       - store_artifacts:

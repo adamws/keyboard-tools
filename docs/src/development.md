@@ -15,7 +15,7 @@ Verify the tools by running the following commands:
 go version
 npm --version
 docker --version
-docker-compose --version
+docker compose --version
 ```
 
 ### Start on local machine
@@ -26,7 +26,7 @@ From `kicad-api` directory run the command (you might
 need to prepend it with `sudo` depending on your setup):
 
 ```sh
-docker-compose up
+docker compose up
 ```
 
 This starts a `kicad` specific containers required by `server`.
