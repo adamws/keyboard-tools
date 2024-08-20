@@ -16,7 +16,7 @@ rsync -avP --exclude="letsencrypt" --exclude="flower" --exclude=".env" \
 ssh $SSH_USER@$SSH_HOST << EOF
     cd app
     export TAG=$TAG
-    docker-compose down -v --rmi="all"
-    docker-compose pull
-    docker-compose up -d --force-recreate
+    docker compose down -v --rmi="all"
+    docker compose pull
+    docker compose up -d --force-recreate
 EOF
