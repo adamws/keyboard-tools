@@ -19,6 +19,7 @@ jobs:
   build-test-deploy:
     machine:
       image: ubuntu-2404:2024.05.1
+    resource_class: large
     steps:
       - checkout
       - run:
@@ -53,6 +54,7 @@ jobs:
       - run:
           name: Run tests
           working_directory: tests
+          no_output_timeout: 30m
           command: |
             . .env/bin/activate
             ./wait-for-selenium.sh pytest --junitxml=test-results/pytest/results.xml
