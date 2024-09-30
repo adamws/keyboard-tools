@@ -1,11 +1,10 @@
 celery==5.4.0
 git+https://github.com/adamws/kinet2pcb@1fc8a4b67e9fbb25beade950c80d3cdc8d868c23
-minio==7.2.7
+minio==7.2.9
 git+https://github.com/adamws/PcbDraw@master
-redis==5.0.7
+redis==5.1.0
 skidl==1.0.0
 kle2netlist==0.4.0
-# lxml 5.0.0 breaks PcbDraw: https://github.com/yaqwsx/PcbDraw/issues/157
-lxml==4.9.3
-kbplacer==0.11
-pathvalidate==3.2.0
+lxml==5.3.0
+kbplacer==0.12
+pathvalidate==3.2.1

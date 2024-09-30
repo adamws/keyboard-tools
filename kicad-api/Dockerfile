@@ -29,7 +29,7 @@ RUN cd /kicad/.local/share/kicad/7.0/3rdparty \
 
 RUN mkdir templates \
   && cd templates \
-  && wget https://raw.githubusercontent.com/adamws/kle2netlist/v0.2/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
+  && wget https://raw.githubusercontent.com/adamws/kle2netlist/v0.4.0/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
 
 COPY --chown=kicad requirements.txt .
 RUN pip3 install -r requirements.txt
