@@ -81,17 +81,17 @@ func getKeyCenter(key kleKey) (float64, float64) {
 
 	rotOrginX := key.RotationX
 	rotOrginY := key.RotationY
-	angle := -1 * key.RotationAngle
+	angle := 1 * key.RotationAngle
 	angleRad := angle * math.Pi / 180
 
 	x = x - rotOrginX
 	y = y - rotOrginY
 
-	x = (x * math.Cos(angleRad)) - (y * math.Sin(angleRad))
-	y = (y * math.Cos(angleRad)) + (x * math.Sin(angleRad))
+	x1 := (x * math.Cos(angleRad)) - (y * math.Sin(angleRad))
+	y1 := (x * math.Sin(angleRad)) + (y * math.Cos(angleRad))
 
-	x = x + rotOrginX
-	y = y + rotOrginY
+	x = x1 + rotOrginX
+	y = y1 + rotOrginY
 
 	return x, y
 }
