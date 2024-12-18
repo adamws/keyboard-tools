@@ -91,8 +91,11 @@ def wait_and_download(selenium, download_dir):
     download_link = selenium.find_element("xpath", "//a[@id='download']")
     link = download_link.get_attribute("href")
 
-    job_id = re.search(f"{selenium.current_url}api/pcb/(.*)/result", link).group(1)
+    job_id = None
+    if match := re.search(f"{selenium.current_url}(worker/)?api/pcb/(.*)/result", link):
+        job_id = match.group(2)
 
+    assert job_id
     download_file_path = f"{download_dir}/{job_id}.zip"
 
     timeout = 60
