@@ -3,7 +3,7 @@
   "version": "0.9",
   "private": true,
   "scripts": {
-    "postinstall": "patch-package && cd node_modules/@ijprest/kle-serial && npm run build",
+    "postinstall": "patch-package && cd node_modules/@ijprest/kle-serial && npm run build -- --skipLibCheck",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
