@@ -5,12 +5,12 @@ WORKDIR webapp
 
 RUN npm install --unsafe-perm && npm run build
 
-FROM golang:1.23.0-alpine3.20 AS GO_BUILD
+FROM golang:1.24.1-alpine3.21 AS GO_BUILD
 COPY server /server
 WORKDIR /server
 RUN go build -o /go/bin/server
 
-FROM alpine:3.20.0
+FROM alpine:3.21.3
 COPY --from=JS_BUILD /webapp/dist* ./webapp/
 COPY --from=GO_BUILD /go/bin/server ./
 EXPOSE 8080
