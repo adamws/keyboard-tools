@@ -11,27 +11,27 @@
     "format": "prettier . --write"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.1",
+    "@element-plus/icons-vue": "^2.3.2",
     "@ijprest/kle-serial": "git+https://github.com/ijprest/kle-serial.git",
-    "acorn": "^8.14.1",
-    "axios": "^1.8.2",
-    "core-js": "^3.41.0",
-    "element-plus": "^2.9.6",
+    "acorn": "^8.15.0",
+    "axios": "^1.11.0",
+    "core-js": "^3.45.0",
+    "element-plus": "^2.10.5",
     "file-saver": "^2.0.5",
     "prismjs": "^1.30.0",
     "vue-prism-editor": "^2.0.0-alpha.2",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
-    "eslint": "^9.22.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-plugin-vue": "^10.0.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.4.0",
     "patch-package": "^8.0.0",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.1",
-    "vue": "^3.5.13"
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.0.6",
+    "vue": "^3.5.18"
   },
   "browserslist": [
     "> 1%",
