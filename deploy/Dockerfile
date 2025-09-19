@@ -5,6 +5,13 @@ WORKDIR kicad-app
 
 RUN npm install --unsafe-perm && npm run build
 
+FROM node:22.6.0-alpine3.20 AS LANDING_BUILD
+RUN apk add --no-cache git
+COPY frontend/landing-page /landing-page
+WORKDIR landing-page
+
+RUN npm install && npm run build
+
 FROM node:22.6.0-alpine3.20 AS DOCS_BUILD
 RUN apk add --no-cache git
 COPY docs /docs
@@ -19,6 +26,7 @@ RUN go build -o /go/bin/server
 
 FROM alpine:3.21.3
 COPY --from=JS_BUILD /kicad-app/dist* ./kicad-app/
+COPY --from=LANDING_BUILD /landing-page/dist* ./landing-page/
 COPY --from=DOCS_BUILD /docs/src/.vitepress/dist* ./docs/
 COPY --from=GO_BUILD /go/bin/server ./
 EXPOSE 8080

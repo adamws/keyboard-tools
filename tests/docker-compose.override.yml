@@ -1,7 +1,0 @@
-services:
-  worker:
-    build:
-      context: ../kicad-api
-  kicad-app:
-    ports:
-      - "8080:8080"

@@ -23,12 +23,12 @@ def pytest_addoption(parser):
     parser.addoption(
         "--website-selenium",
         help="Website address for selenium host",
-        default="http://kicad-app:8080",
+        default="http://kicad.localhost",
     )
     parser.addoption(
         "--backend-test-host",
         help="Backed address for test host",
-        default="http://localhost:8080",
+        default="http://kicad.localhost",
     )
 
 
@@ -102,6 +102,7 @@ def driver(request, driver_option, selenium_data_path):
         _driver.set_window_size(1360, 1800)
     else:
         _driver = webdriver.Firefox(options=options)
+    #import pdb; pdb.set_trace()
     yield _driver
     _driver.quit()
 

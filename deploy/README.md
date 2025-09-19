@@ -6,7 +6,7 @@ Run
 docker compose up
 ```
 
-Application will be accessible at `https://localhost`.
+Application will be accessible at `https://kicad.localhost`.
 For local runs it is impossible to get trusted certificate so traefik will generate default, self signed certificate.
 Your browser will warn you about security risk. This can be safely ignored.
 

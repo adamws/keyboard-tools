@@ -19,7 +19,7 @@ jobs:
             deploy/.* run-deploy true
             kicad-api/.* run-build-code true
             server/.* run-build-code true
-            frontend/kicad-app/.* run-build-code true
+            frontend/.* run-build-code true
             tests/.* run-tests true
             docs/.* run-build-docs true
       - run:

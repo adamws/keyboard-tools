@@ -130,6 +130,14 @@ func NewApp() App {
 func (a *App) Serve() error {
 	router := mux.NewRouter()
 
+	var kicadRouter *mux.Router
+	if !a.production {
+		kicadRouter = router
+	} else {
+		// Create kicad subdomain router
+		kicadRouter = router.Host("{subdomain:kicad}.{domain:.*}").Subrouter()
+	}
+
 	kicadPostNewTask := a.KicadPostNewTask
 	kicadGetTaskStatus := a.KicadGetTaskStatus
 	kicadGetTaskRender := a.KicadGetTaskRender
@@ -143,18 +151,27 @@ func (a *App) Serve() error {
 		kicadGetTaskResult = disableCors(kicadGetTaskResult)
 	}
 
-	router.HandleFunc("/api/pcb", kicadPostNewTask)
-	router.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
-	router.HandleFunc("/api/pcb/{task_id}/render/{side}", kicadGetTaskRender).Methods("GET")
-	router.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
+	// KiCad subdomain routes
+	kicadRouter.HandleFunc("/api/pcb", kicadPostNewTask)
+	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
+	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{side}", kicadGetTaskRender).Methods("GET")
+	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
-	// serve documentation at /help
+	// serve documentation at /help on kicad subdomain
 	docsHandler := WebAppHandler{staticPath: "/docs", indexPath: "index.html"}
-	router.PathPrefix("/help").Handler(http.StripPrefix("/help", docsHandler))
+	kicadRouter.PathPrefix("/help").Handler(http.StripPrefix("/help", docsHandler))
 
-	// create and use handler for single page web application
-	spa := WebAppHandler{staticPath: "/kicad-app", indexPath: "index.html"}
-	router.PathPrefix("/").Handler(spa)
+	// serve kicad app on kicad subdomain
+	kicadSpa := WebAppHandler{staticPath: "/kicad-app", indexPath: "index.html"}
+	kicadRouter.PathPrefix("/").Handler(kicadSpa)
+
+	if a.production {
+		// Create landing page router (main domain)
+		landingRouter := router.Host("{domain:.*}").Subrouter()
+		// serve landing page on main domain
+		landingSpa := WebAppHandler{staticPath: "/landing-page", indexPath: "index.html"}
+		landingRouter.PathPrefix("/").Handler(landingSpa)
+	}
 
 	srv := &http.Server{
 		Handler: router,

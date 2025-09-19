@@ -37,7 +37,8 @@ jobs:
           working_directory: tests
           command: |
             export TAG=circleci
-            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml up -d
+            export DOMAIN=localhost
+            docker compose up -d
       - restore_cache:
           key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
       - run:
@@ -64,14 +65,16 @@ jobs:
           when: always
           command: |
             export TAG=circleci
-            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml logs
+            export DOMAIN=localhost
+            docker compose logs
       - run:
           name: Stop docker compose
           working_directory: tests
           when: always
           command: |
             export TAG=circleci
-            docker compose -f docker-compose.yml -f ../kicad-api/docker-compose.yml -f docker-compose.override.yml stop
+            export DOMAIN=localhost
+            docker compose stop
       - store_artifacts:
           path: tests/report.html
       - store_artifacts:
@@ -149,4 +152,3 @@ workflows:
           filters:
             branches:
               only: master
-

@@ -1,20 +1,69 @@
 services:
+
+  reverse-proxy:
+    image: traefik:v2.9
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  kicad-app:
+    image: admwscki/keyboard-tools-server:${TAG:-latest}
+    expose:
+      - "8080"
+    env_file:
+      - test.env
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    depends_on:
+      - worker
+      - redis
+      - minio
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) || Host(`kicad.${DOMAIN}`)"
+
+  worker:
+    image: admwscki/keyboard-tools-kicad:${TAG:-latest}
+    command: celery -A src.tasks.celery worker -l INFO --prefetch-multiplier 1 -E
+    env_file:
+      - test.env
+    build:
+      context: ../kicad-api
+    depends_on:
+      - redis
+      - minio
+
+  redis:
+    image: redis:6-alpine
+
+  minio:
+    image: minio/minio:RELEASE.2023-01-25T00-19-54Z
+    volumes:
+      - minio_data:/data
+    env_file:
+      - test.env
+    environment:
+      PYTHONUNBUFFERED: 1
+    command: server /data
+
+  # Add selenium for testing
   firefox:
     image: selenium/standalone-firefox:4.23.1
     shm_size: 2gb
     volumes:
       - ./data:/home/seluser/data
-    ports:
-      - "4444:4444"
-      - "7900:7900"
-  kicad-app:
-    image: admwscki/keyboard-tools-server:${TAG:-latest}
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
-    env_file:
-      - ../deploy/production.env
+    network_mode: host
     depends_on:
-      - worker
-      - redis
-      - minio
+      - kicad-app
+
+
+volumes:
+  minio_data:
+

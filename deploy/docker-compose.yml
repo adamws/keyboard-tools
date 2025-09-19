@@ -52,7 +52,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
-      - "traefik.http.routers.app.rule=Host(`kicad.${DOMAIN}`)"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) || Host(`kicad.${DOMAIN}`)"
 
   worker:
     image: admwscki/keyboard-tools-kicad:${TAG:-latest}
