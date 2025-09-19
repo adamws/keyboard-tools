@@ -7,7 +7,7 @@ parameters:
   run-deploy:
     type: boolean
     default: false
-  run-deploy-docs:
+  run-build-docs:
     type: boolean
     default: false
   run-tests:
@@ -115,18 +115,17 @@ jobs:
                 name: Deploy on remote server
                 command: |
                   ./deploy/deploy.sh
-  deploy-docs:
+  build-docs:
     docker:
       - image: cimg/node:19.7.0
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "2a:13:57:7d:9e:32:58:f3:19:ac:0c:f8:a7:34:4c:e6"
       - run:
-          name: Build and deploy github pages
+          name: Build docs
           working_directory: docs
-          command: ./deploy.sh
+          command: |
+            npm install
+            npm run docs:build
 
 
 workflows:
@@ -144,9 +143,9 @@ workflows:
             tags:
               only: /^v[0-9]+(\.[0-9]+)*$/
   build-docs:
-    when: << pipeline.parameters.run-deploy-docs >>
+    when: << pipeline.parameters.run-build-docs >>
     jobs:
-      - deploy-docs:
+      - build-docs:
           filters:
             branches:
               only: master

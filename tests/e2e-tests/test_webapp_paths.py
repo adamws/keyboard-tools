@@ -7,8 +7,7 @@ from selenium.webdriver.common.by import By
     "index,xpath",
     [
         (1, "//button[normalize-space(.)='Upload layout']"),
-        (2, "//div[contains(text(), 'Project documentation is hosted at')]"),
-        (3, "//p[contains(text(), 'All tools on this site')]"),
+        (2, "//p[contains(text(), 'All tools on this site')]"),
     ],
 )
 def test_navigation_bar(index, xpath, selenium):
@@ -22,7 +21,6 @@ def test_navigation_bar(index, xpath, selenium):
     "selenium,xpath",
     [
         ("/kle-converter", "//button[normalize-space(.)='Upload layout']"),
-        ("/help", "//div[contains(text(), 'Project documentation is hosted at')]"),
         ("/about", "//p[contains(text(), 'All tools on this site')]"),
     ], indirect=["selenium"],
 )

@@ -44,9 +44,13 @@ onBeforeUnmount(() => {
           <el-menu-item index="/kle-converter" route="/kle-converter"
             >KLE converter</el-menu-item
           >
-          <el-menu-item index="/help" route="/help">Help</el-menu-item>
           <el-menu-item index="/about" route="/about">About</el-menu-item>
           <div v-if="!isMenuCollapsed" class="flex-grow" />
+          <el-menu-item>
+            <el-link href="/help" :underline="false" target="_blank">
+              Docs
+            </el-link>
+          </el-menu-item>
           <el-menu-item>
             <el-link :href="githubLink" :underline="false" target="_blank">
               Visit on GitHub

@@ -1,7 +1,7 @@
 export default {
   title: 'Keyboard Tools',
   lang: 'en-US',
-  base: '/keyboard-tools/',
+  base: '/help/',
   cleanUrls: true,
   themeConfig: {
     sidebar: [

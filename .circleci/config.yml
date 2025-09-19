@@ -21,7 +21,7 @@ jobs:
             server/.* run-build-code true
             webapp/.* run-build-code true
             tests/.* run-tests true
-            docs/.* run-deploy-docs true
+            docs/.* run-build-docs true
       - run:
           name: Print continuation parameters
           command: |
