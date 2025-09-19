@@ -40,11 +40,11 @@ go run server.go
 
 The back end will serve on `http://localhost:8080`.
 
-Navigate to the `webapp` folder, install dependencies,
+Navigate to the `frontend/kicad-app` folder, install dependencies,
 and start the front end development server by running:
 
 ```sh
-cd webapp
+cd frontend/kicad-app
 npm install
 npm run dev
 ```

@@ -149,7 +149,7 @@ func (a *App) Serve() error {
 	router.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
 	// create and use handler for single page web application
-	spa := WebAppHandler{staticPath: "/webapp", indexPath: "index.html"}
+	spa := WebAppHandler{staticPath: "/kicad-app", indexPath: "index.html"}
 	router.PathPrefix("/").Handler(spa)
 
 	srv := &http.Server{

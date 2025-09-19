@@ -23,7 +23,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--website-selenium",
         help="Website address for selenium host",
-        default="http://app:8080",
+        default="http://kicad-app:8080",
     )
     parser.addoption(
         "--backend-test-host",

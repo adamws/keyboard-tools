@@ -2,6 +2,6 @@ services:
   worker:
     build:
       context: ../kicad-api
-  app:
+  kicad-app:
     ports:
       - "8080:8080"

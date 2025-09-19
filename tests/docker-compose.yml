@@ -7,7 +7,7 @@ services:
     ports:
       - "4444:4444"
       - "7900:7900"
-  app:
+  kicad-app:
     image: admwscki/keyboard-tools-server:${TAG:-latest}
     build:
       context: ..
