@@ -1,11 +1,13 @@
 :root {
   --el-menu-item-height: 36px;
   --el-menu-horizontal-height: 40px;
+  --el-color-primary: #00ab91;
+  --el-color-primary-dark-2: #005182;
 }
 
 a {
   color: var(--el-color-primary);
 }
 a:hover {
-  color: var(--el-color-primary-light-3);
+  color: var(--el-color-primary-dark-2);
 }
