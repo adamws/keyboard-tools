@@ -12,11 +12,18 @@
 
 </div>
 
+## Layout editor
+
+The Keyboard Layout Editor reimplementation.
+
+- available at [editor.keyboard-tools.xyz](https://editor.keyboard-tools.xyz)
+- project page: https://github.com/adamws/kle-ng
+
 ## KiCad project generator
 
-Convert layout from [keyboard-layout-editor](http://www.keyboard-layout-editor.com/) to KiCad project.
+Convert layout from [keyboard-layout-editor](https://editor.keyboard-tools.xyz) to KiCad project.
 
-- web interface available at [keyboard-tools.xyz](http://keyboard-tools.xyz)
+- web interface available at [kicad.keyboard-tools.xyz](https://kicad.keyboard-tools.xyz)
 - uses [kiswitch library](https://github.com/kiswitch/kiswitch)
 - four available switch footprints: Cherry MX, Alps, Cherry MX/Alps hybrid and Hotswap Kailh MX
 - key rotations thanks to patched [kle-serial](https://github.com/ijprest/kle-serial)
@@ -31,7 +38,7 @@ Detailed documentation available [here](https://adamws.github.io/keyboard-tools)
 
 ## KLE converter
 
-- use [kle-serial](https://github.com/ijprest/kle-serial) via web interface at [keyboard-tools.xyz/kle-converter](http://keyboard-tools.xyz/kle-converter)
+- use [kle-serial](https://github.com/ijprest/kle-serial) via web interface at [kicad.keyboard-tools.xyz/kle-converter](https://kicad.keyboard-tools.xyz/kle-converter)
 - includes [patch](https://github.com/ijprest/kle-serial/pull/1) which fix
   rotated key issue
 
