@@ -38,7 +38,7 @@ services:
       - "traefik.http.routers.prometheus.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
 
-  kicad-app:
+  app:
     image: admwscki/keyboard-tools-server:${TAG:-latest}
     expose:
       - "8080"
@@ -52,6 +52,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
       - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) || Host(`kicad.${DOMAIN}`)"
 
   worker:

@@ -17,6 +17,7 @@ In order to deploy on server set environment variables (in `.env` file):
 ```
 ACME_EMAIL=<email to be used for certificate registration>
 DOMAIN=<domain poiting to server>
+TRAEFIK_CERT_RESOLVER=letsencrypt
 ```
 
 and run:
