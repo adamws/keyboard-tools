@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://keyboard-tools.xyz/">
-  <img src="https://raw.githubusercontent.com/adamws/keyboard-tools/master/webapp/src/assets/logo.png" width="300">
+  <img src="https://raw.githubusercontent.com/adamws/keyboard-tools/master/frontend/kicad-app/src/assets/logo.png" width="300">
 </a>
 
 # Keyboard tools
