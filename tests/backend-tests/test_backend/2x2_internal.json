@@ -13,7 +13,9 @@
   "keys": [
     {
       "color": "#cccccc",
-      "labels": [],
+      "labels": [
+        "0,0"
+      ],
       "textColor": [],
       "textSize": [],
       "default": {
@@ -42,7 +44,9 @@
     },
     {
       "color": "#cccccc",
-      "labels": [],
+      "labels": [
+        "0,1"
+      ],
       "textColor": [],
       "textSize": [],
       "default": {
@@ -71,7 +75,9 @@
     },
     {
       "color": "#cccccc",
-      "labels": [],
+      "labels": [
+        "1,0"
+      ],
       "textColor": [],
       "textSize": [],
       "default": {
@@ -100,7 +106,9 @@
     },
     {
       "color": "#cccccc",
-      "labels": [],
+      "labels": [
+        "1,1"
+      ],
       "textColor": [],
       "textSize": [],
       "default": {

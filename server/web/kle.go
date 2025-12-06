@@ -1,8 +1,6 @@
 package web
 
 import (
-	"fmt"
-	"math"
 	"regexp"
 )
 
@@ -73,33 +71,4 @@ func areKeysAnnotated(keys []kleKey) bool {
 		}
 	}
 	return true
-}
-
-func getKeyCenter(key kleKey) (float64, float64) {
-	x := key.X + (key.Width / 2)
-	y := key.Y + (key.Height / 2)
-
-	rotOrginX := key.RotationX
-	rotOrginY := key.RotationY
-	angle := 1 * key.RotationAngle
-	angleRad := angle * math.Pi / 180
-
-	x = x - rotOrginX
-	y = y - rotOrginY
-
-	x1 := (x * math.Cos(angleRad)) - (y * math.Sin(angleRad))
-	y1 := (x * math.Sin(angleRad)) + (y * math.Cos(angleRad))
-
-	x = x1 + rotOrginX
-	y = y1 + rotOrginY
-
-	return x, y
-}
-
-func annotateKeys(keys []kleKey) {
-	for i, key := range keys {
-		x, y := getKeyCenter(key)
-		key.Labels = []string{fmt.Sprintf("%d,%d", int(y), int(x))}
-		keys[i] = key
-	}
 }

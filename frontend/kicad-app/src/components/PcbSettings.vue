@@ -2,17 +2,13 @@
 import { ref } from "vue";
 import { QuestionFilled } from "@element-plus/icons-vue";
 
-const matrixOptions = ["Automatic", "Predefined"];
 const switchFootprintOptions = ["MX", "Alps", "MX/Alps Hybrid", "Hotswap Kailh MX"];
 const diodeFootprintOptions = ["SOD-123", "SOD-123F", "SOD-323", "SOD-323F"];
 const routingOptions = ["Disabled", "Switch-Diode only", "Full"];
-const controllerCircuitOptions = ["None", "ATmega32U4"];
 
-const matrixOption = ref("Automatic");
 const switchFootprint = ref("MX");
 const diodeFootprint = ref("SOD-123");
 const routingOption = ref("Disabled");
-const controllerCircuit = ref("None");
 const keyDistance = ref([19.05, 19.05]);
 
 const footprintsMapping = {
@@ -24,11 +20,9 @@ const footprintsMapping = {
 
 const getSettings = () => {
   return {
-    matrixOption: matrixOption.value,
     switchFootprint: footprintsMapping[switchFootprint.value],
     diodeFootprint: "Diode_SMD:D_" + diodeFootprint.value,
     routing: routingOption.value,
-    controllerCircuit: controllerCircuit.value,
     keyDistance:
       keyDistance.value[0].toString() + " " + keyDistance.value[1].toString(),
   };
@@ -51,28 +45,13 @@ defineExpose({ getSettings });
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row3">Matrix:</span>
-    <span v-for="option in matrixOptions" class="row3">
-      <el-radio v-model="matrixOption" :label="option" :key="option">{{
-        option
-      }}</el-radio>
-    </span>
-    <span class="setting-name row4">Routing:</span>
-    <span v-for="option in routingOptions" class="row4">
+    <span class="setting-name row3">Routing:</span>
+    <span v-for="option in routingOptions" class="row3">
       <el-radio v-model="routingOption" :label="option" :key="option">{{
         option
       }}</el-radio>
     </span>
-    <span class="setting-name row5">Controller circuit:</span>
-    <span v-for="option in controllerCircuitOptions" class="row5">
-      <el-radio v-model="controllerCircuit" :label="option" :key="option">
-        {{ option }}
-        <span v-if="option != 'None'" style="display: flex; color: #e6a23c">
-          (experimental)</span
-        >
-      </el-radio>
-    </span>
-    <span class="setting-name row6"
+    <span class="setting-name row4"
       >Key distance:
       <el-tooltip
         class="box-item"
@@ -85,7 +64,7 @@ defineExpose({ getSettings });
         </el-icon>
       </el-tooltip>
     </span>
-    <span v-for="(item, index) in ['X', 'Y']" class="row6">
+    <span v-for="(item, index) in ['X', 'Y']" class="row4">
       <el-text style="margin-left: 2px; margin-right: 9px">{{ item }}:</el-text>
       <el-input-number
         v-model="keyDistance[index]"
@@ -121,11 +100,5 @@ defineExpose({ getSettings });
 }
 .row4 {
   grid-row: 4;
-}
-.row5 {
-  grid-row: 5;
-}
-.row6 {
-  grid-row: 6;
 }
 </style>

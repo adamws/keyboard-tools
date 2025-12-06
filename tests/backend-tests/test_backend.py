@@ -82,7 +82,6 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
       "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
     ]
     routing_options = ["Disabled", "Full"]
-    controller_circuit_options = ["None", "ATmega32U4"]
 
     # simulate many requests at the same time, server let's 2 waiting tasks in queue (not running or prefetched)
     # so '2 * cpu_count + 5' should cover all scenarios (when using prefetch_multipler = 1):
@@ -99,8 +98,7 @@ def test_multiple_concurrent_requests(pcb_endpoint, request):
     results = [None] * number_of_tasks
     for i in range(number_of_tasks):
         settings = {
-            "controllerCircuit": random.choice(controller_circuit_options),
-            "matrixOption": "Automatic",
+            "controllerCircuit": "None",
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
             "diodeFootprint": "Diode_SMD:D_SOD-123F",

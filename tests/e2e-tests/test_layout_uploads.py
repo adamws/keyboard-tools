@@ -128,12 +128,10 @@ def layout_test_steps(
 # trigger circle ci limits, better approach needed:
 @pytest.mark.parametrize("switch_footprint", ["MX", "Alps", "MX/Alps Hybrid"])
 @pytest.mark.parametrize("routing", ["Disabled", "Full"])
-@pytest.mark.parametrize("controller_circuit", ["None", "ATmega32U4"])
-def test_correct_layout_no_matrix_predefined(
+def test_correct_layout(
     layout,
     switch_footprint,
     routing,
-    controller_circuit,
     selenium,
     request,
     download_dir,
@@ -142,7 +140,7 @@ def test_correct_layout_no_matrix_predefined(
     test_dir, _ = os.path.splitext(filename)
     layout_file = f"{test_dir}/{layout}.json"
 
-    for option in [switch_footprint, routing, controller_circuit]:
+    for option in [switch_footprint, routing]:
         span = selenium.find_element("xpath", f"//span[contains(.,'{option}')]")
         span.click()
 

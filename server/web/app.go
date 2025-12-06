@@ -191,7 +191,6 @@ type kleJsonRequest struct {
 }
 
 type pcbSettings struct {
-	MatrixOption      string `json:"matrixOption"`
 	SwitchFootprint   string `json:"switchFootprint"`
 	DiodeFootprint    string `json:"diodeFootprint"`
 	Routing           string `json:"routing"`
@@ -284,15 +283,11 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// validate request body and modify if needed
-		if request.Settings.MatrixOption == "Predefined" {
-			if !areKeysAnnotated(request.Layout.Keys) {
-				sendErr(w, http.StatusBadRequest,
-					"Unsupported json layout, key annotations with matrix positions missing or illegal")
-				return
-			}
-		} else {
-			annotateKeys(request.Layout.Keys)
+		// validate request body
+		if !areKeysAnnotated(request.Layout.Keys) {
+			sendErr(w, http.StatusBadRequest,
+				"Unsupported json layout, key annotations with matrix positions missing or illegal")
+			return
 		}
 
 		// start new task
