@@ -21,6 +21,7 @@ def assert_zip_content(zipfile, expected_name):
         f"{expected_name}.net",
         f"{expected_name}.kicad_pro",
         f"{expected_name}.kicad_pcb",
+        f"{expected_name}.kicad_sch",
     ]
     for name in expected_in_keyboard_dir:
         assert f"{expected_name}/{name}" in files_in_zip

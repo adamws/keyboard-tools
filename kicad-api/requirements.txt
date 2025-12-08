@@ -1,10 +1,7 @@
-celery==5.4.0
+celery==5.6.0
 git+https://github.com/adamws/kinet2pcb@1fc8a4b67e9fbb25beade950c80d3cdc8d868c23
-minio==7.2.13
-git+https://github.com/adamws/PcbDraw@master
+minio==7.2.20
 redis==5.2.1
-skidl==1.0.0
-kle2netlist==0.4.0
 lxml==5.3.0
-kbplacer==0.12
+kbplacer[schematic] @ git+https://github.com/adamws/kicad-kbplacer@develop
 pathvalidate==3.2.1

@@ -1,4 +1,4 @@
-FROM admwscki/kicad-kbplacer-primary:7.0.11-mantic
+FROM admwscki/kicad-kbplacer-primary:9.0.6-noble
 
 RUN userdel -r ubuntu
 
@@ -11,13 +11,13 @@ RUN groupadd -g $GID -o kicad \
 USER kicad
 WORKDIR /kicad
 
-ARG PLUGINS_PATH=/kicad/.local/share/kicad/7.0/3rdparty/plugins
+ARG PLUGINS_PATH=/kicad/.local/share/kicad/9.0/3rdparty/plugins
 RUN mkdir -p $PLUGINS_PATH
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
 # simulate installation with KiCad's PCM (we care only about footprints):
-RUN cd /kicad/.local/share/kicad/7.0/3rdparty \
+RUN cd /kicad/.local/share/kicad/9.0/3rdparty \
   && mkdir -p footprints \
   && mkdir tmp && cd tmp \
   && wget https://github.com/kiswitch/keyswitch-kicad-library/releases/download/v2.4/keyswitch-kicad-library.zip \
@@ -27,11 +27,11 @@ RUN cd /kicad/.local/share/kicad/7.0/3rdparty \
   && mv footprints ../footprints/com_github_perigoso_keyswitch-kicad-library \
   && cd .. && rm -rf tmp
 
-RUN mkdir templates \
-  && cd templates \
-  && wget https://raw.githubusercontent.com/adamws/kle2netlist/v0.4.0/kicad-templates/atmega32u4-au-v1/atmega32u4-au-v1.kicad_pcb
-
 COPY --chown=kicad requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN pip3 install --upgrade pip \
+  && pip3 install cffi==1.16.0 \
+  && pip3 install -r requirements.txt
+
+RUN pip3 install git+https://github.com/adamws/kicad-svg-extras.git
 
 COPY --chown=kicad src /kicad/src

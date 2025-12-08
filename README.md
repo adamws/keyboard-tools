@@ -49,7 +49,6 @@ For development guide see [this](https://adamws.github.io/keyboard-tools/develop
 ## Credits
 
 - keyboard layout file serialized by [kle-serial](https://github.com/ijprest/kle-serial)
-- netlist generated with [skidl](https://github.com/xesscorp/skidl) based [kle2netlist](https://github.com/adamws/kle2netlist)
 - switch footprints with [kiswitch library](https://github.com/kiswitch/kiswitch)
 - key placement with [kicad-kbplacer](https://github.com/adamws/kicad-kbplacer)
 - pcb preview generated with [pcbdraw](https://github.com/yaqwsx/PcbDraw)
