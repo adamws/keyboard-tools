@@ -1,9 +1,12 @@
 import json
+import glob
 import logging
+import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import List
 
 import pcbnew
 from kbplacer.defaults import ZERO_POSITION
@@ -64,13 +67,49 @@ def run_element_placement_and_routing(
     )
 
 
-def svg_mm_to_cm(svg_file):
-    # Change mm to cm in width/height attributes (edit file as text)
-    with open(svg_file) as f:
-        content = f.read()
-    content = re.sub(r'(width|height)="([0-9]*\.[0-9]*)mm"', r'\1="\2cm"', content)
-    with open(svg_file, "w") as f:
-        f.write(content)
+def add_dummy_fill(
+    board: pcbnew.BOARD,
+    bbox: pcbnew.BOX2I,
+    *,
+    layer: int = pcbnew.F_Cu,
+) -> pcbnew.ZONE:
+    position = bbox.GetPosition()
+    width = bbox.GetWidth()
+    height = bbox.GetHeight()
+
+    corners = [
+        pcbnew.VECTOR2I(position[0], position[1]),
+        pcbnew.VECTOR2I(position[0] + width, position[1]),
+        pcbnew.VECTOR2I(position[0] + width, position[1] + height),
+        pcbnew.VECTOR2I(position[0], position[1] + height),
+    ]
+
+    zone = pcbnew.ZONE(board)
+
+    polygon = pcbnew.VECTOR_VECTOR2I()
+    for c in corners:
+        polygon.append(c)
+    zone.AddPolygon(polygon)
+    zone.SetLayer(layer)
+    gnd_netcode = 0
+    zone.SetNetCode(gnd_netcode)
+    zone.SetFillFlag(gnd_netcode, True)
+    zone.SetLocalClearance(pcbnew.FromMM(0.4))
+    zone.SetThermalReliefGap(pcbnew.FromMM(0.2))
+    zone.SetThermalReliefSpokeWidth(pcbnew.FromMM(0.4))
+    zone.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+    zone.SetMinThickness(pcbnew.FromMM(0.2))
+    zone.SetZoneName("DUMMY_ZONE")
+    board.Add(zone)
+    return zone
+
+
+def fill_zones(board: pcbnew.BOARD, zones: List[pcbnew.ZONE]) -> None:
+    filler = pcbnew.ZONE_FILLER(board)
+    _zones = pcbnew.ZONES()
+    for z in zones:
+        _zones.append(z)
+    filler.Fill(_zones)
 
 
 def run_kicad_svg(pcb_file, layers, output_file):
@@ -78,17 +117,40 @@ def run_kicad_svg(pcb_file, layers, output_file):
     cmd = [
         "kicad-svg-extras",
         "--layers", layers,
+        "--no-background",
+        "--fit-to-content", "edges_only",
         "-o", output_file,
         pcb_file
     ]
     # fmt: on
     subprocess.run(cmd, check=True)
-    svg_mm_to_cm(output_file)
 
 
 def generate_render(pcb_path: Path, log_path: Path):
-    run_kicad_svg(pcb_path, SVG_TEMPLATE_FRONT, log_path.parent / "front.svg")
-    run_kicad_svg(pcb_path, SVG_TEMPLATE_BACK, log_path.parent / "back.svg")
+    # render is performed on copy of pcb to which we add zones (for nicer looking image)
+    project_full_path = Path(pcb_path).parent
+    pcb_for_render = pcb_path.with_stem("render")
+
+    shutil.copyfile(pcb_path, pcb_for_render)
+
+    try:
+        board = pcbnew.LoadBoard(pcb_for_render)
+        bbox = board.GetBoardEdgesBoundingBox()
+
+        z1 = add_dummy_fill(board, bbox, layer=pcbnew.F_Cu)
+        z2 = add_dummy_fill(board, bbox, layer=pcbnew.B_Cu)
+        fill_zones(board, [z1, z2])
+
+        pcbnew.SaveBoard(pcb_for_render, board)
+    except Exception as err:
+        msg = "Adding zones failed"
+        raise Exception(msg) from err
+
+    run_kicad_svg(pcb_for_render, SVG_TEMPLATE_FRONT, log_path.parent / "front.svg")
+    run_kicad_svg(pcb_for_render, SVG_TEMPLATE_BACK, log_path.parent / "back.svg")
+
+    for f in glob.glob("render*", root_dir=project_full_path):
+        os.remove(project_full_path / f)
 
 
 def configure_loggers(log_path: Path):
