@@ -18,18 +18,20 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gocelery/gocelery"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type App struct {
 	production    bool
 	celeryClient  *gocelery.CeleryClient
 	celeryBackend *gocelery.RedisCeleryBackend
-	minioClient   *minio.Client
+	s3Client      *s3.Client
+	s3Presigner   *s3.PresignClient
 	redisPool     *redis.Pool
 }
 
@@ -106,24 +108,40 @@ func NewApp() App {
 		1,
 	)
 
-	// initialize minio client
-	minioEndpoint := GetenvOrDefault("MINIO_URL", "localhost:9000")
-	minioAccessKey := GetenvOrDefault("MINIO_ACCESS_KEY", "minio_dev")
-	minioSecretKey := GetenvOrDefault("MINIO_SECRET_KEY", "minio_dev_secret")
-	useSSL := false
+	// initialize S3 client
+	s3Endpoint := GetenvOrDefault("S3_URL", "localhost:9000")
+	s3AccessKey := GetenvOrDefault("AWS_ACCESS_KEY_ID", "s3_dev")
+	s3SecretKey := GetenvOrDefault("AWS_SECRET_ACCESS_KEY", "s3_dev_secret")
 
-	minioClient, err := minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(minioAccessKey, minioSecretKey, ""),
-		Secure: useSSL,
+	// Create custom endpoint resolver for S3-compatible storage
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		if service == s3.ServiceID {
+			return aws.Endpoint{
+				URL:               "http://" + s3Endpoint,
+				HostnameImmutable: true,
+			}, nil
+		}
+		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 	})
-	if err != nil {
-		log.Fatalln(err)
+
+	// Create AWS config with static credentials
+	cfg := aws.Config{
+		Credentials:                 credentials.NewStaticCredentialsProvider(s3AccessKey, s3SecretKey, ""),
+		EndpointResolverWithOptions: customResolver,
 	}
+
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true // Required for our configuration of seaweedfs
+	})
+
+	// Create presign client
+	s3Presigner := s3.NewPresignClient(s3Client)
 
 	// CORS is enabled only in prod profile
 	production := os.Getenv("PROFILE") == "PRODUCTION"
 
-	app := App{production, celeryClient, celeryBackend, minioClient, redisPool}
+	app := App{production, celeryClient, celeryBackend, s3Client, s3Presigner, redisPool}
 	return app
 }
 
@@ -205,13 +223,13 @@ type taskStatus struct {
 }
 
 type taskRequest struct {
-	TaskId            string                 `json:"id"`
-	TaskName          string                 `json:"task"`
-	Arguments         []kleJsonRequest       `json:"args"`
-	KeywordArguments  struct{}               `json:"kwargs"`
-	Retries           int                    `json:"retries"`
-	ETA               string                 `json:"eta"`
-	Expires           string                 `json:"expires"`
+	TaskId           string           `json:"id"`
+	TaskName         string           `json:"task"`
+	Arguments        []kleJsonRequest `json:"args"`
+	KeywordArguments struct{}         `json:"kwargs"`
+	Retries          int              `json:"retries"`
+	ETA              string           `json:"eta"`
+	Expires          string           `json:"expires"`
 }
 
 type unackedTaskDetails struct {
@@ -222,12 +240,12 @@ type unackedTaskDetails struct {
 }
 
 type messageProperties struct {
-	BodyEncoding  string           `json:"body_encoding"`
-	CorrelationID string           `json:"correlation_id"`
-	ReplyTo       string           `json:"reply_to"`
-	DeliveryInfo  deliveryInfo     `json:"delivery_info"`
-	DeliveryMode  int              `json:"delivery_mode"`
-	DeliveryTag   string           `json:"delivery_tag"`
+	BodyEncoding  string       `json:"body_encoding"`
+	CorrelationID string       `json:"correlation_id"`
+	ReplyTo       string       `json:"reply_to"`
+	DeliveryInfo  deliveryInfo `json:"delivery_info"`
+	DeliveryMode  int          `json:"delivery_mode"`
+	DeliveryTag   string       `json:"delivery_tag"`
 }
 
 type deliveryInfo struct {
@@ -278,7 +296,7 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if (len(request.Layout.Keys) > 150) {
+		if len(request.Layout.Keys) > 150 {
 			sendErr(w, http.StatusBadRequest, "Layout exceeds 150 key size limitation")
 			return
 		}
@@ -391,7 +409,7 @@ func (a *App) KicadGetTaskRender(w http.ResponseWriter, r *http.Request) {
 	reqParams := make(url.Values)
 
 	objectName := fmt.Sprintf("%s/%s.svg", taskId, side)
-	a.MinioPresignedUrlProxy(objectName, reqParams)(w, r)
+	a.S3PresignedUrlProxy(objectName, reqParams)(w, r)
 }
 
 func (a *App) KicadGetTaskResult(w http.ResponseWriter, r *http.Request) {
@@ -404,15 +422,35 @@ func (a *App) KicadGetTaskResult(w http.ResponseWriter, r *http.Request) {
 	reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", archiveName))
 
 	objectName := fmt.Sprintf("%s/%s", taskId, archiveName)
-	a.MinioPresignedUrlProxy(objectName, reqParams)(w, r)
+	a.S3PresignedUrlProxy(objectName, reqParams)(w, r)
 }
 
-func (a *App) MinioPresignedUrlProxy(objectName string, reqParams url.Values) http.HandlerFunc {
+func (a *App) S3PresignedUrlProxy(objectName string, reqParams url.Values) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		presignedUrl, err := a.minioClient.PresignedGetObject(context.Background(), "kicad-projects", objectName, 24*time.Hour, reqParams)
+		// Create GetObject input
+		getObjectInput := &s3.GetObjectInput{
+			Bucket: aws.String("kicad-projects"),
+			Key:    aws.String(objectName),
+		}
+
+		// Add response content disposition if provided
+		if disposition := reqParams.Get("response-content-disposition"); disposition != "" {
+			getObjectInput.ResponseContentDisposition = aws.String(disposition)
+		}
+
+		// Generate presigned URL
+		presignedReq, err := a.s3Presigner.PresignGetObject(context.Background(), getObjectInput, func(opts *s3.PresignOptions) {
+			opts.Expires = 24 * time.Hour
+		})
 
 		if err != nil {
 			sendErr(w, http.StatusNotFound, err.Error())
+			return
+		}
+
+		presignedUrl, err := url.Parse(presignedReq.URL)
+		if err != nil {
+			sendErr(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -420,6 +458,11 @@ func (a *App) MinioPresignedUrlProxy(objectName string, reqParams url.Values) ht
 			req.URL = presignedUrl
 			// changing host is important, otherwise signature check will fail
 			req.Host = presignedUrl.Host
+
+			// Clear all headers that came from the original request
+			// Only keep what's needed for the presigned URL
+			req.Header = http.Header{}
+
 			if _, ok := req.Header["User-Agent"]; !ok {
 				// explicitly disable User-Agent so it's not set to default value
 				req.Header.Set("User-Agent", "")

@@ -5,9 +5,9 @@ from pathlib import Path
 
 from celery import Celery, states
 from celery.exceptions import Ignore
-from minio import Minio
-from minio.commonconfig import ENABLED, Filter
-from minio.lifecycleconfig import Expiration, LifecycleConfig, Rule
+import boto3
+from botocore.client import Config
+from botocore.exceptions import ClientError
 
 from . import kicad
 
@@ -17,8 +17,8 @@ celery.conf.result_backend = os.environ.get(
     "CELERY_RESULT_BACKEND", "redis://localhost:6379"
 )
 
-minio_access_key = os.environ.get("MINIO_ACCESS_KEY", "minio_dev")
-minio_secret_key = os.environ.get("MINIO_SECRET_KEY", "minio_dev_secret")
+s3_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "s3_dev")
+s3_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "s3_dev_secret")
 
 
 def __update_percentage(percentage):
@@ -28,37 +28,41 @@ def __update_percentage(percentage):
 
 
 def __upload_to_storage(task_id, log_path):
-    client = Minio(
-        "minio:9000",
-        access_key=minio_access_key,
-        secret_key=minio_secret_key,
-        secure=False,
+    client = boto3.client(
+        "s3",
+        endpoint_url="http://s3:9000",
+        aws_access_key_id=s3_access_key,
+        aws_secret_access_key=s3_secret_key,
+        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
     )
 
     bucket_name = "kicad-projects"
-    found = client.bucket_exists(bucket_name)
-    if not found:
-        client.make_bucket(bucket_name)
-        config = LifecycleConfig(
-            [
-                Rule(
-                    ENABLED,
-                    rule_filter=Filter(prefix=""),
-                    rule_id="expire",
-                    expiration=Expiration(days=1),
-                ),
-            ],
+    try:
+        client.head_bucket(Bucket=bucket_name)
+    except ClientError:
+        client.create_bucket(Bucket=bucket_name)
+        lifecycle_configuration = {
+            "Rules": [
+                {
+                    "ID": "expire",
+                    "Status": "Enabled",
+                    "Filter": {"Prefix": ""},
+                    "Expiration": {"Days": 1},
+                }
+            ]
+        }
+        client.put_bucket_lifecycle_configuration(
+            Bucket=bucket_name, LifecycleConfiguration=lifecycle_configuration
         )
-        client.set_bucket_lifecycle("kicad-projects", config)
 
     home = Path.home()
-    client.fput_object(bucket_name, f"{task_id}/{task_id}.zip", f"{home}/{task_id}.zip")
+    client.upload_file(f"{home}/{task_id}.zip", bucket_name, f"{task_id}/{task_id}.zip")
     for side in ["front", "back"]:
-        client.fput_object(
+        client.upload_file(
+            f"{log_path}/{side}.svg",
             bucket_name,
             f"{task_id}/{side}.svg",
-            f"{log_path}/{side}.svg",
-            content_type="image/svg+xml",
+            ExtraArgs={"ContentType": "image/svg+xml"},
         )
 
 

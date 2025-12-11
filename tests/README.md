@@ -20,7 +20,7 @@ This starts:
 - **kicad-app** service at `http://kicad.localhost:8080` (KiCad application)
 - **Main domain** at `http://localhost:8080` (landing page)
 - **Selenium Firefox** at `localhost:7900` (VNC viewer, password: `secret`)
-- All backend services (worker, redis, minio)
+- All backend services (worker, redis, seaweedfs)
 
 ### Run Tests
 

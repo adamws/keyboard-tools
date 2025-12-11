@@ -29,7 +29,6 @@ RUN cd /kicad/.local/share/kicad/9.0/3rdparty \
 
 COPY --chown=kicad requirements.txt .
 RUN pip3 install --upgrade pip \
-  && pip3 install cffi==1.16.0 \
   && pip3 install -r requirements.txt
 
 RUN pip3 install git+https://github.com/adamws/kicad-svg-extras.git
