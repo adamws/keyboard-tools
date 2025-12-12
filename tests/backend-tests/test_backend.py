@@ -14,17 +14,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 FOOTPRINTS_OPTIONS_MAP = {
-    "MX": "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
-    "Alps": "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
-    "MX/Alps Hybrid": "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
-    "Hotswap Kailh MX": "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
+    "MX": "Switch_Keyboard_Cherry_MX.pretty:SW_Cherry_MX_PCB_{:.2f}u",
+    "Alps": "Switch_Keyboard_Alps_Matias.pretty:SW_Alps_Matias_{:.2f}u",
+    "MX/Alps Hybrid": "Switch_Keyboard_Hybrid.pretty:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+    "Hotswap Kailh MX": "Switch_Keyboard_Hotswap_Kailh.pretty:SW_Hotswap_Kailh_MX_{:.2f}u",
 }
 
 DEFAULT_SETTINGS = {
     "controllerCircuit": "None",
     "routing": "Full",
     "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
-    "diodeFootprint": "Diode_SMD:D_SOD-123F",
+    "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
     "keyDistance": "19.05 19.05",
 }
 
@@ -33,7 +33,6 @@ def assert_zip_content(zipfile, expected_name):
     files_in_zip = zipfile.namelist()
     assert "logs/build.log" in files_in_zip
     expected_in_keyboard_dir = [
-        f"{expected_name}.net",
         f"{expected_name}.kicad_pro",
         f"{expected_name}.kicad_pcb",
         f"{expected_name}.kicad_sch",
@@ -53,32 +52,10 @@ def extract_distances(log_message):
         return None
 
 
-def assert_kicad_log(log_file, layout, key_distance):
-    number_of_keys = len(layout["keys"])
-
-    # perform basic checks if log looks ok, not ideal because will fail with basic log file format change
-    # but easiest to validate if generated pcb is at least likely to be correct.
-    log_lines = log_file.readlines()
-
-    # check if expected number of keys are placed in log in expected order:
-    next_key = 1
-    for line in log_lines:
-        decoded = line.decode("utf-8")
-        if f"Setting SW{next_key} footprint position:" in decoded:
-            next_key += 1
-        elif "Set key 1U distance: " in decoded:
-            distances = extract_distances(decoded)
-            assert distances
-            for i in [0, 1]:
-                assert distances[i] == key_distance[i] * 1000000
-
-    assert next_key == number_of_keys + 1
-
-
 def get_artifacts(tmpdir, backend, task_id):
-    for side in ["front", "back"]:
-        r = requests.get(f"{backend}/{task_id}/render/{side}", verify=False)
-        with open(tmpdir / f"{side}.svg", "wb") as f:
+    for name in ["front", "back", "schematic"]:
+        r = requests.get(f"{backend}/{task_id}/render/{name}", verify=False)
+        with open(tmpdir / f"{name}.svg", "wb") as f:
             f.write(r.content)
         with requests.get(
             f"{backend}/{task_id}/result", stream=True, verify=False
@@ -166,9 +143,6 @@ def layout_test_steps(
 
     with zipfile.ZipFile(tmpdir / "result.zip", "r") as result:
         assert_zip_content(result, expected_name)
-        with result.open("logs/build.log") as log_file:
-            key_distance = tuple(map(float, settings["keyDistance"].split(" ")))
-            assert_kicad_log(log_file, layout_json, key_distance)
 
 
 @pytest.mark.parametrize("layout", ["2x2_internal", "arisu_internal"])
@@ -192,7 +166,7 @@ def test_correct_layout(
         "controllerCircuit": "None",
         "routing": routing,
         "switchFootprint": FOOTPRINTS_OPTIONS_MAP[switch_footprint],
-        "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
         "keyDistance": "19.05 19.05",
     }
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
@@ -269,10 +243,10 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             layouts.append(json.loads(f.read()))
 
     footprint_options = [
-        "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
-        "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
-        "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
-        "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
+        "Switch_Keyboard_Cherry_MX.pretty:SW_Cherry_MX_PCB_{:.2f}u",
+        "Switch_Keyboard_Alps_Matias.pretty:SW_Alps_Matias_{:.2f}u",
+        "Switch_Keyboard_Hybrid.pretty:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+        "Switch_Keyboard_Hotswap_Kailh.pretty:SW_Hotswap_Kailh_MX_{:.2f}u",
     ]
     routing_options = ["Disabled", "Full"]
 
@@ -294,7 +268,7 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             "controllerCircuit": "None",
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
-            "diodeFootprint": "Diode_SMD:D_SOD-123F",
+            "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
             "keyDistance": "19.05 19.05",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}

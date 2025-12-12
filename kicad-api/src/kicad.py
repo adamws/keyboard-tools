@@ -1,25 +1,9 @@
 import json
-import glob
-import logging
-import os
-import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
-from typing import List
 
-import pcbnew
-from kbplacer.defaults import ZERO_POSITION
-from kbplacer.edge_generator import build_board_outline
-from kbplacer.element_position import (
-    ElementInfo,
-    ElementPosition,
-    PositionOption,
-    Side,
-)
-from kbplacer.key_placer import KeyPlacer
-from kbplacer.schematic_builder import create_schematic, load_keyboard
-from kinet2pcb import kinet2pcb
 from pathvalidate import sanitize_filename, sanitize_filepath
 
 __all__ = ["new_pcb"]
@@ -27,98 +11,49 @@ __all__ = ["new_pcb"]
 SVG_TEMPLATE_FRONT = "F.Cu,F.SilkS,Edge.Cuts"
 SVG_TEMPLATE_BACK = "B.Cu,B.SilkS,Edge.Cuts"
 
-
-def get_key_distance(settings):
-    value = settings["keyDistance"]
-    try:
-        key_distance = tuple(map(float, value.split(" ")))
-    except Exception as err:
-        msg = f"Could not parse `keyDistance` value: {value}"
-        raise Exception(msg) from err
-    if len(key_distance) != 2:
-        msg = f"Too many parts in `keyDistance` value: {value}"
-        raise Exception(msg)
-    return key_distance
+SWITCHES_LIBRARY_PATH = f"{Path.home()}/.local/share/kicad/9.0/3rdparty/footprints/com_github_perigoso_keyswitch-kicad-library/"
 
 
-def run_element_placement_and_routing(
-    board: pcbnew.BOARD,
+def run_kbplacer(
+    pcb_path: Path,
     layout: Path,
     *,
     key_distance,
     route_switches_with_diodes,
     route_rows_and_columns,
+    switch_footprint,
+    diode_footprint,
+    log_path,
 ):
-    DIODE_POSITION = ElementPosition(5.08, 4, 90.0, Side.BACK)
-    switch = ElementInfo("SW{}", PositionOption.DEFAULT, ZERO_POSITION, "")
-    diode = ElementInfo("D{}", PositionOption.CUSTOM, DIODE_POSITION, "")
-    additional_elements = [
-        ElementInfo("ST{}", PositionOption.CUSTOM, ZERO_POSITION, "")
+    # fmt: off
+    cmd = [
+        "python3", "-m", "kbplacer",
+        "--pcb-file", pcb_path,
+        "--create-sch-file",
+        "--create-pcb-file",
+        "--switch-footprint", switch_footprint,
+        "--diode-footprint", diode_footprint,
+        "--layout", layout,
+        "--log-level", "INFO",
+        "--key-distance", key_distance,
     ]
-
-    placer = KeyPlacer(board, key_distance)
-    placer.run(
-        layout,
-        switch,
-        diode,
-        route_switches_with_diodes,
-        route_rows_and_columns,
-        additional_elements,
-    )
-
-
-def add_dummy_fill(
-    board: pcbnew.BOARD,
-    bbox: pcbnew.BOX2I,
-    *,
-    layer: int = pcbnew.F_Cu,
-) -> pcbnew.ZONE:
-    position = bbox.GetPosition()
-    width = bbox.GetWidth()
-    height = bbox.GetHeight()
-
-    corners = [
-        pcbnew.VECTOR2I(position[0], position[1]),
-        pcbnew.VECTOR2I(position[0] + width, position[1]),
-        pcbnew.VECTOR2I(position[0] + width, position[1] + height),
-        pcbnew.VECTOR2I(position[0], position[1] + height),
-    ]
-
-    zone = pcbnew.ZONE(board)
-
-    polygon = pcbnew.VECTOR_VECTOR2I()
-    for c in corners:
-        polygon.append(c)
-    zone.AddPolygon(polygon)
-    zone.SetLayer(layer)
-    gnd_netcode = 0
-    zone.SetNetCode(gnd_netcode)
-    zone.SetFillFlag(gnd_netcode, True)
-    zone.SetLocalClearance(pcbnew.FromMM(0.4))
-    zone.SetThermalReliefGap(pcbnew.FromMM(0.2))
-    zone.SetThermalReliefSpokeWidth(pcbnew.FromMM(0.4))
-    zone.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
-    zone.SetMinThickness(pcbnew.FromMM(0.2))
-    zone.SetZoneName("DUMMY_ZONE")
-    board.Add(zone)
-    return zone
-
-
-def fill_zones(board: pcbnew.BOARD, zones: List[pcbnew.ZONE]) -> None:
-    filler = pcbnew.ZONE_FILLER(board)
-    _zones = pcbnew.ZONES()
-    for z in zones:
-        _zones.append(z)
-    filler.Fill(_zones)
+    # fmt: on
+    if route_switches_with_diodes:
+        cmd.append("--route-switches-with-diodes")
+    if route_rows_and_columns:
+        cmd.append("--route-rows-and-columns")
+    with open(log_path, "w") as f:
+        subprocess.run(cmd, check=True, stdout=f, stderr=subprocess.STDOUT)
 
 
 def run_kicad_svg(pcb_file, layers, output_file):
     # fmt: off
     cmd = [
-        "kicad-svg-extras",
+        "kicad-cli", "pcb", "export", "svg",
         "--layers", layers,
-        "--no-background",
-        "--fit-to-content", "edges_only",
+        "--exclude-drawing-sheet",
+        "--fit-page-to-board",
+        "--mode-single",
         "-o", output_file,
         pcb_file
     ]
@@ -127,93 +62,34 @@ def run_kicad_svg(pcb_file, layers, output_file):
 
 
 def generate_render(pcb_path: Path, log_path: Path):
-    # render is performed on copy of pcb to which we add zones (for nicer looking image)
-    project_full_path = Path(pcb_path).parent
-    pcb_for_render = pcb_path.with_stem("render")
-
-    shutil.copyfile(pcb_path, pcb_for_render)
-
-    try:
-        board = pcbnew.LoadBoard(pcb_for_render)
-        bbox = board.GetBoardEdgesBoundingBox()
-
-        z1 = add_dummy_fill(board, bbox, layer=pcbnew.F_Cu)
-        z2 = add_dummy_fill(board, bbox, layer=pcbnew.B_Cu)
-        fill_zones(board, [z1, z2])
-
-        pcbnew.SaveBoard(pcb_for_render, board)
-    except Exception as err:
-        msg = "Adding zones failed"
-        raise Exception(msg) from err
-
-    run_kicad_svg(pcb_for_render, SVG_TEMPLATE_FRONT, log_path.parent / "front.svg")
-    run_kicad_svg(pcb_for_render, SVG_TEMPLATE_BACK, log_path.parent / "back.svg")
-
-    for f in glob.glob("render*", root_dir=project_full_path):
-        os.remove(project_full_path / f)
+    run_kicad_svg(pcb_path, SVG_TEMPLATE_FRONT, log_path.parent / "front.svg")
+    run_kicad_svg(pcb_path, SVG_TEMPLATE_BACK, log_path.parent / "back.svg")
 
 
-def configure_loggers(log_path: Path):
-    ch = logging.FileHandler(log_path, mode="w")
-    ch.setLevel(logging.DEBUG)
-    ch.setFormatter(
-        logging.Formatter("[%(asctime)s %(filename)s:%(lineno)d]: %(message)s")
-    )
-
-    dependencies_loggers = [
-        logging.getLogger("kbplacer"),
-        logging.getLogger("kinet2pcb"),
+def generate_schematic_image(schematic_path: Path, log_path: Path):
+    # fmt: off
+    cmd = [
+        "kicad-cli", "sch", "export", "svg",
+        "--exclude-drawing-sheet",
+        "--output",
+        schematic_path.parent,
+        schematic_path,
     ]
-    for logger in dependencies_loggers:
-        for handler in logger.handlers:
-            try:
-                logger.removeHandler(handler)
-            except:
-                # Ignore all issues with logger handlers.
-                pass
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(ch)
-        logger.propagate = False
-
-
-def is_key_label_valid(label):
-    if label and re.match(r"^[0-9]+,[0-9]+$", label):
-        return True
-    else:
-        return False
-
-
-def sanitize_keys(keys):
-    """Make sure that labels are correct and do row-column sorting
-    Some layouts, especially ergo keyboards can have weird key ordering,
-    since we are requiring row/column assignments with labels,
-    we can easily sort it so the annotations of added elements are more natural
-    """
-    for key in keys:
-        labels = key["labels"]
-        if not labels:
-            msg = "Key labels missing"
-            raise RuntimeError(msg)
-
-        # be forgiving, remove all white spaces to fix simple mistakes:
-        labels[0] = re.sub(r"\s+", "", str(labels[0]), flags=re.UNICODE)
-        if not is_key_label_valid(labels[0]):
-            msg = (
-                f"Key label invalid: '{labels[0]}' - "
-                "label needs to follow 'row,column' format, for example '1,2'"
-            )
-            raise RuntimeError(msg)
-
-    def sort_key(item):
-        return tuple(map(int, item["labels"][0].split(",")))
-
-    keys.sort(key=sort_key)
+    # fmt: on
+    result = subprocess.run(cmd, text=True, check=False)
+    name = schematic_path.stem
+    expected_result = schematic_path.parent / f"{name}.svg"
+    if not expected_result.exists():
+        msg = "Failed to generate schematic image"
+        if result.stderr:
+            msg += ": " + result.stderr
+        raise RuntimeError(msg)
+    shutil.copy(expected_result, log_path.parent / "schematic.svg")
 
 
 def create_work_dir(task_id: str) -> Path:
-    work_dir = Path(task_id)
-    work_dir.mkdir()
-    return work_dir.absolute()
+    workdir = tempfile.mkdtemp(prefix=task_id)
+    return Path(workdir).absolute()
 
 
 def get_project_name(layout_name: str) -> str:
@@ -234,40 +110,15 @@ def create_log_dir(work_dir: Path) -> Path:
     return log_dir.absolute()
 
 
-def generate_netlist(schematic_path: Path) -> Path:
-    netlist_path = schematic_path.with_suffix(".net")
-
-    result = subprocess.run(
-        [
-            "kicad-cli",
-            "sch",
-            "export",
-            "netlist",
-            "--output",
-            netlist_path,
-            schematic_path,
-        ],
-        text=True,
-        check=False,
-    )
-    if not netlist_path.exists():
-        msg = "Failed to generate netlist"
-        if result.stderr:
-            msg += ": " + result.stderr
-        raise RuntimeError(msg)
-
-    return netlist_path
-
-
-def new_pcb(task_id, task_request, update_state_callback):
-    update_state_callback(0)
-
+def new_pcb(task_id, task_request) -> Path:
     layout = task_request["layout"]
     settings = task_request["settings"]
 
-    key_distance = get_key_distance(settings)
+    switch_footprint= SWITCHES_LIBRARY_PATH + settings["switchFootprint"]
+    diode_footprint= "/usr/share/kicad/footprints/" + settings["diodeFootprint"]
     route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
     route_rows_and_columns = settings["routing"] == "Full"
+    key_distance = settings["keyDistance"]
 
     work_dir = create_work_dir(task_id)
 
@@ -276,59 +127,26 @@ def new_pcb(task_id, task_request, update_state_callback):
 
     log_dir = create_log_dir(work_dir)
     log_path = log_dir / "build.log"
-    configure_loggers(log_path)
-
-    update_state_callback(10)
-    sanitize_keys(layout["keys"])
 
     sch_file = project_full_path / (project_name + ".kicad_sch")
     pcb_file = project_full_path / (project_name + ".kicad_pcb")
+
     layout_file = project_full_path / (project_name + ".json")
     with open(layout_file, "w") as out:
         out.write(json.dumps(layout, indent=2))
 
-    update_state_callback(20)
-    keyboard = load_keyboard(layout_file)
-    # stabilizer footprints not supported at the moment:
-    # stabilizer_footprint="Mounting_Keyboard_Stabilizer:Stabilizer_Cherry_MX_{:.2f}u",
-    create_schematic(
-        keyboard,
-        sch_file,
-        switch_footprint=settings["switchFootprint"],
-        diode_footprint=settings["diodeFootprint"],
-    )
-
-    netlist_file = generate_netlist(sch_file)
-
-    update_state_callback(30)
-    libraries = ["/usr/share/kicad/footprints"]
-    footprints = Path(f"{Path.home()}/.local/share/kicad/9.0/3rdparty/footprints")
-    for path in footprints.iterdir():
-        if path.is_dir():
-            libraries.append(str(path))
-    kinet2pcb(str(netlist_file), pcb_file, libraries)
-
-    board = pcbnew.LoadBoard(pcb_file)
-
-    update_state_callback(50)
-    run_element_placement_and_routing(
-        board,
+    run_kbplacer(
+        pcb_file,
         layout_file,
         key_distance=key_distance,
         route_switches_with_diodes=route_switches_with_diodes,
         route_rows_and_columns=route_rows_and_columns,
+        switch_footprint=switch_footprint,
+        diode_footprint=diode_footprint,
+        log_path=log_path,
     )
 
-    update_state_callback(60)
-    build_board_outline(board, 5, "SW{}")
-
-    pcbnew.Refresh()
-    pcbnew.SaveBoard(pcb_file, board)
-
-    update_state_callback(70)
+    generate_schematic_image(sch_file, log_path)
     generate_render(pcb_file, log_path)
 
-    update_state_callback(80)
-    shutil.make_archive(task_id, "zip", task_id)
-
-    return log_dir
+    return work_dir

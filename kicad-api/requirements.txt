@@ -1,7 +1,5 @@
 celery==5.6.0
-git+https://github.com/adamws/kinet2pcb@1fc8a4b67e9fbb25beade950c80d3cdc8d868c23
 boto3==1.35.95
 redis==5.2.1
-lxml==5.3.0
 kbplacer[schematic] @ git+https://github.com/adamws/kicad-kbplacer@develop
 pathvalidate==3.2.1

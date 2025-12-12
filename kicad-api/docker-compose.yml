@@ -5,12 +5,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    profiles:
+      # run 'docker compose --profile worker up' to start with conterized worker,
+      # otherwise expect that worker run locally
+      - worker
     command: celery -A src.tasks.celery worker -l INFO --prefetch-multiplier 1
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - AWS_ACCESS_KEY_ID=s3_dev
       - AWS_SECRET_ACCESS_KEY=s3_dev_secret
+      - S3_URL=s3:9000
     depends_on:
       - redis
       - s3
@@ -29,7 +34,7 @@ services:
       - 8081:8080
       - 8888:8888
       - 9000:9000
-    command: server -s3 -s3.port=9000 -dir=/data
+    command: server -s3 -s3.port=9000 -dir=/data -master.peers=none
     environment:
       - AWS_ACCESS_KEY_ID=s3_dev
       - AWS_SECRET_ACCESS_KEY=s3_dev_secret
