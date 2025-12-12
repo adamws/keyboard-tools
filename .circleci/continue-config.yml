@@ -7,9 +7,6 @@ parameters:
   run-deploy:
     type: boolean
     default: false
-  run-build-docs:
-    type: boolean
-    default: false
   run-tests:
     type: boolean
     default: false
@@ -39,8 +36,6 @@ jobs:
             export TAG=circleci
             export DOMAIN=localhost
             docker compose up -d
-      - restore_cache:
-          key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
       - run:
           name: Install python deps in a venv
           working_directory: tests
@@ -48,17 +43,13 @@ jobs:
             python -m venv .env
             . .env/bin/activate
             python -m pip install -r requirements.txt
-      - save_cache:
-          key: test-deps-{{ .Branch }}-{{ checksum "tests/requirements.txt" }}
-          paths:
-            - "tests/.env"
       - run:
           name: Run tests
           working_directory: tests
           no_output_timeout: 30m
           command: |
             . .env/bin/activate
-            ./wait-for-selenium.sh pytest --junitxml=test-results/pytest/results.xml
+            pytest --junitxml=test-results/pytest/results.xml
       - run:
           name: Get docker compose logs
           working_directory: tests
@@ -77,8 +68,6 @@ jobs:
             docker compose stop
       - store_artifacts:
           path: tests/report.html
-      - store_artifacts:
-          path: tests/selenium.log
       - store_test_results:
           path: tests/test-results
       - when: # run only on master or tag when code or deployment scripts changed, do not run when only tests changed:
@@ -118,17 +107,6 @@ jobs:
                 name: Deploy on remote server
                 command: |
                   ./deploy/deploy.sh
-  build-docs:
-    docker:
-      - image: cimg/node:19.7.0
-    steps:
-      - checkout
-      - run:
-          name: Build docs
-          working_directory: docs
-          command: |
-            npm install
-            npm run docs:build
 
 
 workflows:
@@ -145,10 +123,3 @@ workflows:
               ignore: gh-pages
             tags:
               only: /^v[0-9]+(\.[0-9]+)*$/
-  build-docs:
-    when: << pipeline.parameters.run-build-docs >>
-    jobs:
-      - build-docs:
-          filters:
-            branches:
-              only: master

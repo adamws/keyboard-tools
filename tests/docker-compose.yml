@@ -51,16 +51,6 @@ services:
       - test.env
     command: server -s3 -s3.port=9000 -dir=/data
 
-  # Add selenium for testing
-  firefox:
-    image: selenium/standalone-firefox:4.23.1
-    shm_size: 2gb
-    volumes:
-      - ./data:/home/seluser/data
-    network_mode: host
-    depends_on:
-      - kicad-app
-
 
 volumes:
   s3_data:

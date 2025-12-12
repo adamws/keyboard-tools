@@ -175,13 +175,19 @@ func (a *App) Serve() error {
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{side}", kicadGetTaskRender).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
-	// serve documentation at /help on kicad subdomain
-	docsHandler := WebAppHandler{staticPath: "/docs", indexPath: "index.html"}
-	kicadRouter.PathPrefix("/help").Handler(http.StripPrefix("/help", docsHandler))
+	// This server no longer serves frontent,
+	// it has been migrted to editor.keyboard-tool.xyz which hosted on github pages.
+	// This is only interface for /api worker calls
 
-	// serve kicad app on kicad subdomain
-	kicadSpa := WebAppHandler{staticPath: "/kicad-app", indexPath: "index.html"}
-	kicadRouter.PathPrefix("/").Handler(kicadSpa)
+	// redirect /help to external editor
+	kicadRouter.HandleFunc("/help", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://editor.keyboard-tools.xyz/", http.StatusMovedPermanently)
+	})
+
+	// redirect root to external editor
+	kicadRouter.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://editor.keyboard-tools.xyz/", http.StatusMovedPermanently)
+	})
 
 	if a.production {
 		// Create landing page router (main domain)

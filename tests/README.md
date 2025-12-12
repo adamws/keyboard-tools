@@ -12,14 +12,13 @@ From the `tests` directory, run:
 # Build all services
 docker compose build
 
-# Start all services (includes selenium)
+# Start all services
 DOMAIN=localhost docker compose up -d
 ```
 
 This starts:
 - **kicad-app** service at `http://kicad.localhost:8080` (KiCad application)
 - **Main domain** at `http://localhost:8080` (landing page)
-- **Selenium Firefox** at `localhost:7900` (VNC viewer, password: `secret`)
 - All backend services (worker, redis, seaweedfs)
 
 ### Run Tests
@@ -36,7 +35,6 @@ pytest
 ### Configuration
 
 The tests use these URLs by default:
-- **Frontend**: `http://kicad.localhost` (selenium accesses the KiCad app)
 - **Backend API**: `http://kicad.localhost` (direct API testing)
 
 ## Local Development Testing
@@ -48,12 +46,9 @@ You can also test only with worker dockerized and other services running locally
 # 1. Start backend
 cd server && go run server.go
 
-# 2. Start frontend
-cd frontend/kicad-app && npm run dev
-
-# 3. Start worker
+# 2. Start worker
 cd kicad-api && docker compose build && docker compose up
 
-# 4. Run tests with custom URLs
-pytest --webdriver=firefox --website-selenium=http://localhost:<frontend port> --backend-test-host=http://localhost:8080
+# 3. Run tests with custom URLs
+pytest --webdriver=firefox --backend-test-host=http://localhost:8080
 ```
