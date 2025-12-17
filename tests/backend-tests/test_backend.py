@@ -14,17 +14,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 FOOTPRINTS_OPTIONS_MAP = {
-    "MX": "Switch_Keyboard_Cherry_MX.pretty:SW_Cherry_MX_PCB_{:.2f}u",
-    "Alps": "Switch_Keyboard_Alps_Matias.pretty:SW_Alps_Matias_{:.2f}u",
-    "MX/Alps Hybrid": "Switch_Keyboard_Hybrid.pretty:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
-    "Hotswap Kailh MX": "Switch_Keyboard_Hotswap_Kailh.pretty:SW_Hotswap_Kailh_MX_{:.2f}u",
+    "MX": "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
+    "Alps": "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
+    "MX/Alps Hybrid": "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+    "Hotswap Kailh MX": "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
 }
 
 DEFAULT_SETTINGS = {
     "controllerCircuit": "None",
     "routing": "Full",
     "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
-    "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
+    "diodeFootprint": "Diode_SMD:D_SOD-123F",
     "keyDistance": "19.05 19.05",
 }
 
@@ -166,7 +166,7 @@ def test_correct_layout(
         "controllerCircuit": "None",
         "routing": routing,
         "switchFootprint": FOOTPRINTS_OPTIONS_MAP[switch_footprint],
-        "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
+        "diodeFootprint": "Diode_SMD:D_SOD-123F",
         "keyDistance": "19.05 19.05",
     }
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
@@ -243,10 +243,10 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             layouts.append(json.loads(f.read()))
 
     footprint_options = [
-        "Switch_Keyboard_Cherry_MX.pretty:SW_Cherry_MX_PCB_{:.2f}u",
-        "Switch_Keyboard_Alps_Matias.pretty:SW_Alps_Matias_{:.2f}u",
-        "Switch_Keyboard_Hybrid.pretty:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
-        "Switch_Keyboard_Hotswap_Kailh.pretty:SW_Hotswap_Kailh_MX_{:.2f}u",
+        "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
+        "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
+        "Switch_Keyboard_Hybrid:SW_Hybrid_Cherry_MX_Alps_{:.2f}u",
+        "Switch_Keyboard_Hotswap_Kailh:SW_Hotswap_Kailh_MX_{:.2f}u",
     ]
     routing_options = ["Disabled", "Full"]
 
@@ -268,7 +268,7 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             "controllerCircuit": "None",
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
-            "diodeFootprint": "Diode_SMD.pretty:D_SOD-123F",
+            "diodeFootprint": "Diode_SMD:D_SOD-123F",
             "keyDistance": "19.05 19.05",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}

@@ -46,6 +46,22 @@ def run_kbplacer(
         subprocess.run(cmd, check=True, stdout=f, stderr=subprocess.STDOUT)
 
 
+def bundle_switch_footprints(project_path: Path, lib_nickname: str):
+    src = SWITCHES_LIBRARY_PATH + f"{lib_nickname}.pretty"
+    dst = project_path / f"footprints/{lib_nickname}.pretty"
+    dst.mkdir(parents=True, exist_ok=True)
+
+    shutil.copytree(src, dst, dirs_exist_ok=True)
+
+    with open(project_path / "fp-lib-table", "w") as f:
+        fp_lib_table = f"""(fp_lib_table
+   (version 7)
+   (lib (name "{lib_nickname}")(type "KiCad")(uri "${{KIPRJMOD}}/footprints/{lib_nickname}.pretty")(options "")(descr ""))
+)
+"""
+        f.write(fp_lib_table)
+
+
 def run_kicad_svg(pcb_file, layers, output_file):
     # fmt: off
     cmd = [
@@ -114,8 +130,12 @@ def new_pcb(task_id, task_request) -> Path:
     layout = task_request["layout"]
     settings = task_request["settings"]
 
-    switch_footprint= SWITCHES_LIBRARY_PATH + settings["switchFootprint"]
-    diode_footprint= "/usr/share/kicad/footprints/" + settings["diodeFootprint"]
+    switch_lib_nickname, switch_fp = settings["switchFootprint"].split(":", 1)
+    diode_lib_nickname, diode_fp = settings["diodeFootprint"].split(":", 1)
+
+    switch_footprint= SWITCHES_LIBRARY_PATH + switch_lib_nickname + ".pretty:" + switch_fp
+    diode_footprint= "/usr/share/kicad/footprints/" + diode_lib_nickname + ".pretty:" + diode_fp
+    print(f"{switch_footprint=} {diode_footprint=}")
     route_switches_with_diodes = settings["routing"] in ["Switch-Diode only", "Full"]
     route_rows_and_columns = settings["routing"] == "Full"
     key_distance = settings["keyDistance"]
@@ -145,6 +165,8 @@ def new_pcb(task_id, task_request) -> Path:
         diode_footprint=diode_footprint,
         log_path=log_path,
     )
+
+    bundle_switch_footprints(project_full_path, switch_lib_nickname)
 
     generate_schematic_image(sch_file, log_path)
     generate_render(pcb_file, log_path)
