@@ -1,5 +1,22 @@
+# Stage 1: Build Go binary
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /build
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build static binary (CGO_ENABLED=0 for portability)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kicad-worker ./cmd/worker
+
+# Stage 2: Runtime with KiCad
 FROM admwscki/kicad-kbplacer-primary:9.0.6-noble
 
+# Remove default user, create kicad user
 RUN userdel -r ubuntu
 
 ARG UID=1000
@@ -16,7 +33,7 @@ RUN mkdir -p $PLUGINS_PATH
 
 ENV PATH="/kicad/.local/bin:${PATH}"
 
-# simulate installation with KiCad's PCM (we care only about footprints):
+# Install keyswitch footprints (same as before)
 RUN cd /kicad/.local/share/kicad/9.0/3rdparty \
   && mkdir -p footprints \
   && mkdir tmp && cd tmp \
@@ -27,10 +44,15 @@ RUN cd /kicad/.local/share/kicad/9.0/3rdparty \
   && mv footprints ../footprints/com_github_perigoso_keyswitch-kicad-library \
   && cd .. && rm -rf tmp
 
-COPY --chown=kicad requirements.txt .
+# Install kbplacer Python package (still needed for subprocess calls)
 RUN pip3 install --upgrade pip \
-  && pip3 install -r requirements.txt
+  && pip3 install "git+https://github.com/adamws/kicad-kbplacer@develop#egg=kbplacer[schematic]"
 
-RUN pip3 install git+https://github.com/adamws/kicad-svg-extras.git
+# Copy Go binary from builder
+COPY --from=builder --chown=kicad /build/kicad-worker /kicad/
 
-COPY --chown=kicad src /kicad/src
+# Set binary as executable
+RUN chmod +x /kicad/kicad-worker
+
+# Run worker
+CMD ["/kicad/kicad-worker"]

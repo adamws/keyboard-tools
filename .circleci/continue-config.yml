@@ -21,20 +21,21 @@ jobs:
       - checkout
       - run:
           name: Build server docker image
+          working_directory: kicad-backend
           command: |
             export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
-            docker build -t ${SERVER_IMAGE} -f deploy/Dockerfile .
+            docker build -t ${SERVER_IMAGE} -f docker/server.Dockerfile .
       - run:
           name: Build worker docker image
+          working_directory: kicad-backend
           command: |
             export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
-            docker build -t ${WORKER_IMAGE} -f kicad-api/Dockerfile kicad-api
+            docker build -t ${WORKER_IMAGE} -f docker/worker.Dockerfile .
       - run:
           name: Start docker compose for tests
-          working_directory: tests
+          working_directory: kicad-backend
           command: |
             export TAG=circleci
-            export DOMAIN=localhost
             docker compose up -d
       - run:
           name: Install python deps in a venv
@@ -49,10 +50,10 @@ jobs:
           no_output_timeout: 30m
           command: |
             . .env/bin/activate
-            pytest --junitxml=test-results/pytest/results.xml
+            pytest --backend-test-host=http://localhost:8080
       - run:
           name: Get docker compose logs
-          working_directory: tests
+          working_directory: kicad-backend
           when: always
           command: |
             export TAG=circleci
@@ -60,7 +61,7 @@ jobs:
             docker compose logs
       - run:
           name: Stop docker compose
-          working_directory: tests
+          working_directory: kicad-backend
           when: always
           command: |
             export TAG=circleci

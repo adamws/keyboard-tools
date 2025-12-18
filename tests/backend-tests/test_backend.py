@@ -210,7 +210,7 @@ def test_layout_with_name(request, tmpdir, pcb_endpoint):
         pcb_endpoint,
         f"{tmpdir}/2x2_internal.json",
         DEFAULT_SETTINGS,
-        "..60% &layout",
+        "60% &layout",  # Leading ".." is stripped for security (path traversal prevention)
     )
 
 
@@ -229,7 +229,9 @@ def test_incorrect_layout(tmpdir, pcb_endpoint):
     assert results[0]
     task_done, task_result = results[0][1], results[0][2]
     assert task_done == True, "Task did not end"
-    assert "Traceback (most recent call last)" in str(task_result)
+    # With asynq, validation errors return structured error messages (not Python tracebacks)
+    assert task_result.get("error") is not None, "Expected error in task result"
+    assert "invalid layout metadata" in str(task_result).lower(), f"Expected validation error, got: {task_result}"
 
 
 def test_multiple_concurrent_requests(request, pcb_endpoint):

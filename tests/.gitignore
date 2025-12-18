@@ -1,1 +1,4 @@
-output/
+.env/
+.pytest_cache/
+test-results/
+report.html
