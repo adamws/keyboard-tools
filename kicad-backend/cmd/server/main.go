@@ -146,16 +146,10 @@ func (a *App) Serve() error {
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{name}", kicadGetTaskRender).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 
-	// This server no longer serves frontent,
-	// it has been migrted to editor.keyboard-tool.xyz which hosted on github pages.
-	// This is only interface for /api worker calls
-
-	// redirect /help to external editor
-	kicadRouter.HandleFunc("/help", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://editor.keyboard-tools.xyz/", http.StatusMovedPermanently)
-	})
-
-	// redirect root to external editor
+	// This server no longer serves frontend,
+	// it has been migrated to editor.keyboard-tools.xyz which is hosted on github pages.
+	// This is only an interface for /api worker calls.
+	// All non-API routes redirect to the external editor.
 	kicadRouter.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://editor.keyboard-tools.xyz/", http.StatusMovedPermanently)
 	})
