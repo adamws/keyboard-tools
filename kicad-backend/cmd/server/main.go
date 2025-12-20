@@ -96,6 +96,7 @@ func (a *App) Serve() error {
 	kicadGetTaskStatus := a.KicadGetTaskStatus
 	kicadGetTaskRender := a.KicadGetTaskRender
 	kicadGetTaskResult := a.KicadGetTaskResult
+	kicadGetWorkers := a.KicadGetWorkers
 
 	// disable cors for local development
 	if !a.production {
@@ -103,6 +104,7 @@ func (a *App) Serve() error {
 		kicadGetTaskStatus = disableCors(kicadGetTaskStatus)
 		kicadGetTaskRender = disableCors(kicadGetTaskRender)
 		kicadGetTaskResult = disableCors(kicadGetTaskResult)
+		kicadGetWorkers = disableCors(kicadGetWorkers)
 	}
 
 	// KiCad subdomain routes
@@ -110,6 +112,7 @@ func (a *App) Serve() error {
 	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{name}", kicadGetTaskRender).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
+	kicadRouter.HandleFunc("/api/workers", kicadGetWorkers).Methods("GET")
 
 	// This server no longer serves frontend,
 	// it has been migrated to editor.keyboard-tools.xyz which is hosted on github pages.
@@ -142,6 +145,28 @@ type Progress struct {
 	Percentage int    `json:"percentage"`
 	Status     string `json:"status"`
 	Message    string `json:"message,omitempty"`
+}
+
+// workersResponse represents the response for /api/workers endpoint
+type workersResponse struct {
+	WorkerProcesses int            `json:"worker_processes"` // Number of worker processes
+	TotalCapacity   int            `json:"total_capacity"`   // Total concurrent task slots
+	ActiveTasks     int            `json:"active_tasks"`     // Tasks currently processing
+	IdleCapacity    int            `json:"idle_capacity"`    // Available task slots
+	Workers         []workerDetail `json:"workers"`          // Detailed worker info
+}
+
+// workerDetail represents detailed information about a worker process
+type workerDetail struct {
+	ID           string         `json:"id"`
+	Host         string         `json:"host"`
+	PID          int            `json:"pid"`
+	Concurrency  int            `json:"concurrency"`   // Max concurrent tasks for this worker
+	Started      string         `json:"started"`       // ISO 8601 timestamp
+	Status       string         `json:"status"`
+	ActiveTasks  int            `json:"active_tasks"`  // Currently processing
+	IdleCapacity int            `json:"idle_capacity"` // Available task slots
+	Queues       map[string]int `json:"queues"`
 }
 
 func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
@@ -304,6 +329,50 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		response.Result = map[string]interface{}{}
 	}
 
+	json.NewEncoder(w).Encode(response)
+}
+
+func (a *App) KicadGetWorkers(w http.ResponseWriter, r *http.Request) {
+	// Get worker server information from asynq inspector
+	servers, err := a.asynqInspector.Servers()
+	if err != nil {
+		log.Printf("Failed to get worker info: %v", err)
+		sendErr(w, http.StatusInternalServerError, "Failed to retrieve worker information")
+		return
+	}
+
+	// Calculate total capacity and active tasks across all worker processes
+	totalCapacity := 0
+	activeTasks := 0
+	workerDetails := make([]workerDetail, 0, len(servers))
+
+	for _, server := range servers {
+		activeTaskCount := len(server.ActiveWorkers)
+		totalCapacity += server.Concurrency
+		activeTasks += activeTaskCount
+
+		workerDetails = append(workerDetails, workerDetail{
+			ID:           server.ID,
+			Host:         server.Host,
+			PID:          server.PID,
+			Concurrency:  server.Concurrency,
+			Started:      server.Started.Format(time.RFC3339), // ISO 8601
+			Status:       server.Status,
+			ActiveTasks:  activeTaskCount,
+			IdleCapacity: server.Concurrency - activeTaskCount,
+			Queues:       server.Queues,
+		})
+	}
+
+	response := workersResponse{
+		WorkerProcesses: len(servers),
+		TotalCapacity:   totalCapacity,
+		ActiveTasks:     activeTasks,
+		IdleCapacity:    totalCapacity - activeTasks,
+		Workers:         workerDetails,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
