@@ -22,9 +22,10 @@ scrape_configs:
       type: "A"
       port: 8080
 
-  - job_name: "flower"
+  - job_name: "asynqmon"
     dns_sd_configs:
     - names:
-      - "flower"
+      - "asynqmon"
       type: "A"
-      port: 5555
+      port: 8080
+    metrics_path: "/metrics"

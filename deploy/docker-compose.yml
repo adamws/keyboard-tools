@@ -23,7 +23,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   prometheus:
-    image: prom/prometheus:v2.43.0
+    image: prom/prometheus:v3.8.1
     volumes:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
@@ -35,41 +35,64 @@ services:
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
-#      - "traefik.http.routers.prometheus.middlewares=auth"
-#      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
+      - "traefik.http.routers.prometheus.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
 
-  app:
-    image: admwscki/keyboard-tools-server:${TAG:-latest}
+  asynqmon:
+    image: hibiken/asynqmon:latest
     expose:
       - "8080"
+    environment:
+      - PORT=8080
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - ENABLE_METRICS_EXPORTER=true
+      - PROMETHEUS_ADDR=http://prometheus:9090
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.asynqmon.entrypoints=websecure"
+      - "traefik.http.routers.asynqmon.tls=true"
+      - "traefik.http.routers.asynqmon.rule=Host(`asynqmon.${DOMAIN}`)"
+      - "traefik.http.routers.asynqmon.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
+
+  landing-page:
+    image: landing-page:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.landing.entrypoints=websecure"
+      - "traefik.http.routers.landing.tls=true"
+      - "traefik.http.routers.landing.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
+      - "traefik.http.routers.landing.rule=Host(`${DOMAIN}`)"
+
+  kicad-server:
+    image: admwscki/keyboard-tools-server:${TAG:-latest}
     env_file:
       - production.env
     depends_on:
-      - worker
+      - kicad-worker
       - redis
       - s3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.entrypoints=websecure"
-      - "traefik.http.routers.app.tls=true"
-      - "traefik.http.routers.app.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
-      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) || Host(`kicad.${DOMAIN}`)"
+      - "traefik.http.routers.server.entrypoints=websecure"
+      - "traefik.http.routers.server.tls=true"
+      - "traefik.http.routers.server.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
+      - "traefik.http.routers.server.rule=Host(`kicad.${DOMAIN}`)"
 
-  worker:
+  kicad-worker:
     image: admwscki/keyboard-tools-kicad:${TAG:-latest}
-    command: celery -A src.tasks.celery worker -l INFO --prefetch-multiplier 1 -E
     env_file:
       - production.env
     depends_on:
       - redis
       - s3
-
-  flower:
-    image: admwscki/keyboard-tools-flower:0.1
-    env_file:
-      - production.env
-    depends_on:
-      - worker
 
   redis:
     image: redis:6-alpine
@@ -80,7 +103,7 @@ services:
       - s3_data:/data
     env_file:
       - production.env
-    command: server -s3 -s3.port=9000 -dir=/data
+    command: server -dir=/data -filer -filer.port=8888 -master.peers=none
 
 
 volumes:

@@ -7,3 +7,8 @@ start-kicad-backend-dev:
 # update server dependencies
 update-kicad-backend-deps:
   cd kicad-backend && go get -u && go mod tidy
+
+start-local-deployment:
+  #!/usr/bin/env bash
+  cd deploy && \
+    source .env && docker compose up

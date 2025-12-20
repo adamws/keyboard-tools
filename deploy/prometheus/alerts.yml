@@ -1,21 +1,30 @@
 groups:
- - name: Celery rules
+ - name: Asynq rules
    rules:
-   - alert: CeleryWorkerOffline
-     expr: flower_worker_online == 0
-     for: 2m
+   - alert: AsynqWorkersNotProcessing
+     expr: asynq_queue_size > 0 and rate(asynq_tasks_processed_total[5m]) == 0
+     for: 3m
      labels:
        severity: critical
-       context: celery-worker
+       context: asynq-worker
      annotations:
-       summary: Celery worker offline
-       description: Celery worker {{ $labels.worker }} has been offline for more than 2 minutes.
-   - alert: TaskFailureRatioTooHigh
-     expr: (sum(avg_over_time(flower_events_total{type="task-failed"}[15m])) by (task) / sum(avg_over_time(flower_events_total{type=~"task-failed|task-succeeded"}[15m])) by (task)) * 100 > 1
+       summary: Asynq workers not processing tasks
+       description: Queue {{ $labels.queue }} has {{ $value }} pending tasks but no tasks have been processed in the last 5 minutes.
+   - alert: AsynqHighQueueSize
+     expr: asynq_queue_size > 100
+     for: 5m
+     labels:
+       severity: warning
+       context: asynq-queue
+     annotations:
+       summary: High queue size detected
+       description: Queue {{ $labels.queue }} has {{ $value }} pending tasks.
+   - alert: AsynqTaskFailureRatioTooHigh
+     expr: (rate(asynq_tasks_processed_total{status="failure"}[15m]) / rate(asynq_tasks_processed_total[15m])) * 100 > 1
      for: 5m
      labels:
        severity: critical
-       context: celery-task
+       context: asynq-task
      annotations:
-       summary: Task Failure Ratio Too High.
-       description: Average task failure ratio for task {{ $labels.task }} is {{ $value }}.
+       summary: Task failure ratio too high
+       description: Queue {{ $labels.queue }} has a task failure ratio of {{ $value }}%.
