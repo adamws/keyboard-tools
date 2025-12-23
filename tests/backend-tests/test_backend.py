@@ -25,7 +25,6 @@ DEFAULT_SETTINGS = {
     "routing": "Full",
     "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
     "diodeFootprint": "Diode_SMD:D_SOD-123F",
-    "keyDistance": "19.05 19.05",
 }
 
 
@@ -167,7 +166,6 @@ def test_correct_layout(
         "routing": routing,
         "switchFootprint": FOOTPRINTS_OPTIONS_MAP[switch_footprint],
         "diodeFootprint": "Diode_SMD:D_SOD-123F",
-        "keyDistance": "19.05 19.05",
     }
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
 
@@ -183,11 +181,9 @@ def test_layout_with_various_key_sizes(request, tmpdir, pcb_endpoint):
 def test_layout_with_non_default_key_distance(request, tmpdir, pcb_endpoint):
     filename = request.module.__file__
     test_dir, _ = os.path.splitext(filename)
-    layout_file = f"{test_dir}/2x2_internal.json"
+    layout_file = f"{test_dir}/2x2_internal_custom_sizing.json"
 
-    settings = DEFAULT_SETTINGS
-    settings["keyDistance"] = "18.05 20.005"
-    layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
+    layout_test_steps(tmpdir, pcb_endpoint, layout_file, DEFAULT_SETTINGS)
 
 
 def test_layout_with_name(request, tmpdir, pcb_endpoint):
@@ -271,7 +267,6 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
             "diodeFootprint": "Diode_SMD:D_SOD-123F",
-            "keyDistance": "19.05 19.05",
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])

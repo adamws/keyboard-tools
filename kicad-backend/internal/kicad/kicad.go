@@ -22,7 +22,6 @@ const (
 func RunKBPlacer(
 	pcbPath string,
 	layoutPath string,
-	keyDistance string,
 	routeSwitchesWithDiodes bool,
 	routeRowsAndColumns bool,
 	switchFootprint string,
@@ -39,7 +38,6 @@ func RunKBPlacer(
 		"--diode-footprint", diodeFootprint,
 		"--layout", layoutPath,
 		"--log-level", "INFO",
-		"--key-distance", keyDistance,
 	}
 
 	// Add conditional flags
@@ -266,7 +264,6 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 	switchFootprintSetting, _ := settings["switchFootprint"].(string)
 	diodeFootprintSetting, _ := settings["diodeFootprint"].(string)
 	routing, _ := settings["routing"].(string)
-	keyDistance, _ := settings["keyDistance"].(string)
 
 	// Split footprint settings into library nickname and footprint name
 	// Format: "lib_nickname:footprint"
@@ -340,7 +337,6 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 	if err := RunKBPlacer(
 		pcbFile,
 		layoutFile,
-		keyDistance,
 		routeSwitchesWithDiodes,
 		routeRowsAndColumns,
 		switchFootprint,
