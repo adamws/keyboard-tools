@@ -38,6 +38,7 @@ func RunKBPlacer(
 		"--diode-footprint", diodeFootprint,
 		"--layout", layoutPath,
 		"--log-level", "INFO",
+		"--max-keys", "150",
 	}
 
 	// Add conditional flags
