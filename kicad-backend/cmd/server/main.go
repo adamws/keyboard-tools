@@ -143,7 +143,6 @@ type taskStatus struct {
 // Progress represents task progress information (matches worker definition)
 type Progress struct {
 	Percentage int    `json:"percentage"`
-	Status     string `json:"status"`
 	Message    string `json:"message,omitempty"`
 }
 
@@ -274,7 +273,6 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(taskInfo.Result, &progress); err == nil {
 				response.Result = map[string]interface{}{
 					"percentage": progress.Percentage,
-					"status":     progress.Status,
 					"message":    progress.Message,
 				}
 			} else {
@@ -292,7 +290,6 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(taskInfo.Result, &progress); err == nil {
 				response.Result = map[string]interface{}{
 					"percentage": progress.Percentage,
-					"status":     progress.Status,
 				}
 			} else {
 				response.Result = map[string]interface{}{"percentage": 100}

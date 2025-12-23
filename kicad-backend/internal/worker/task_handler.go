@@ -31,7 +31,6 @@ type TaskRequest struct {
 // Progress represents task progress information
 type Progress struct {
 	Percentage int    `json:"percentage"`
-	Status     string `json:"status"`
 	Message    string `json:"message,omitempty"`
 }
 
@@ -49,7 +48,7 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 	log.Printf("[Task %s] Starting KiCad project generation", taskID)
 
 	// Update progress: Starting
-	if err := w.reportProgress(task, 0, "starting", "Initializing task"); err != nil {
+	if err := w.reportProgress(task, 0, "Initializing task"); err != nil {
 		log.Printf("[Task %s] Failed to report progress: %v", taskID, err)
 	}
 
@@ -60,7 +59,7 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 			log.Printf("[Task %s] Stack trace: %s", taskID, debug.Stack())
 
 			// Report error progress
-			w.reportProgress(task, 0, "failed", fmt.Sprintf("Panic: %v", r))
+			w.reportProgress(task, 0, fmt.Sprintf("Panic: %v", r))
 		}
 	}()
 
@@ -68,12 +67,12 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 	var taskRequest map[string]interface{}
 	if err := json.Unmarshal(task.Payload(), &taskRequest); err != nil {
 		log.Printf("[Task %s] Failed to parse request JSON (non-retriable): %v", taskID, err)
-		w.reportProgress(task, 0, "failed", "Invalid JSON payload")
+		w.reportProgress(task, 0, "Invalid JSON payload")
 		return fmt.Errorf("failed to parse request JSON: %w", asynq.SkipRetry)
 	}
 
 	// Update progress: 10% - Generating PCB
-	if err := w.reportProgress(task, 10, "generating", "Generating KiCad PCB files"); err != nil {
+	if err := w.reportProgress(task, 10, "Generating KiCad PCB files"); err != nil {
 		log.Printf("[Task %s] Failed to report progress: %v", taskID, err)
 	}
 
@@ -86,35 +85,35 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 		if kicad.IsValidationError(err) {
 			log.Printf("[Task %s] Validation error detected, will not retry", taskID)
 			errMsg := fmt.Sprintf("Invalid input: %v", err)
-			w.reportProgress(task, 0, "failed", errMsg)
+			w.reportProgress(task, 0, errMsg)
 			// Wrap with SkipRetry to prevent retries, but include the error message
 			return fmt.Errorf("%s: %w", errMsg, asynq.SkipRetry)
 		}
 
 		// Transient error, allow retry
 		log.Printf("[Task %s] Transient error, will retry", taskID)
-		w.reportProgress(task, 0, "failed", fmt.Sprintf("PCB generation failed: %v", err))
+		w.reportProgress(task, 0, fmt.Sprintf("PCB generation failed: %v", err))
 		return fmt.Errorf("PCB generation failed: %w", err)
 	}
 
 	log.Printf("[Task %s] PCB generated successfully, work directory: %s", taskID, workDir)
 
 	// Update progress: 50% - Uploading to S3
-	if err := w.reportProgress(task, 50, "uploading", "Uploading files to storage"); err != nil {
+	if err := w.reportProgress(task, 50, "Uploading files to storage"); err != nil {
 		log.Printf("[Task %s] Failed to report progress: %v", taskID, err)
 	}
 
 	// Upload to Filer
 	if err := w.filerUploader.UploadToStorage(ctx, taskID, workDir); err != nil {
 		log.Printf("[Task %s] Error uploading to storage: %v", taskID, err)
-		w.reportProgress(task, 50, "failed", fmt.Sprintf("Upload failed: %v", err))
+		w.reportProgress(task, 50, fmt.Sprintf("Upload failed: %v", err))
 		return fmt.Errorf("Filer upload failed: %w", err)
 	}
 
 	log.Printf("[Task %s] Files uploaded to Filer successfully", taskID)
 
 	// Update progress: 100% - Complete
-	if err := w.reportProgress(task, 100, "completed", "Task completed successfully"); err != nil {
+	if err := w.reportProgress(task, 100, "Task completed successfully"); err != nil {
 		log.Printf("[Task %s] Failed to report final progress: %v", taskID, err)
 	}
 
@@ -123,10 +122,9 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 }
 
 // reportProgress writes progress updates to the task's result writer
-func (w *Worker) reportProgress(task *asynq.Task, percentage int, status, message string) error {
+func (w *Worker) reportProgress(task *asynq.Task, percentage int, message string) error {
 	progress := Progress{
 		Percentage: percentage,
-		Status:     status,
 		Message:    message,
 	}
 
