@@ -7,6 +7,7 @@ import (
 	"log"
 	"runtime/debug"
 
+	"kicad-backend/internal/common"
 	"kicad-backend/internal/kicad"
 
 	"github.com/hibiken/asynq"
@@ -26,12 +27,6 @@ type TaskRequest struct {
 		KeyDistance       string `json:"keyDistance"`
 		ControllerCircuit string `json:"controllerCircuit"`
 	} `json:"settings"`
-}
-
-// Progress represents task progress information
-type Progress struct {
-	Percentage int    `json:"percentage"`
-	Message    string `json:"message,omitempty"`
 }
 
 // RegisterTasks registers all task handlers with the mux
@@ -123,7 +118,7 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 
 // reportProgress writes progress updates to the task's result writer
 func (w *Worker) reportProgress(task *asynq.Task, percentage int, message string) error {
-	progress := Progress{
+	progress := common.Progress{
 		Percentage: percentage,
 		Message:    message,
 	}

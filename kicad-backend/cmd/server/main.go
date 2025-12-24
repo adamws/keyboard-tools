@@ -7,8 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
+
+	"kicad-backend/internal/common"
 
 	"github.com/gorilla/mux"
 	"github.com/hibiken/asynq"
@@ -22,31 +23,11 @@ type App struct {
 	filerURL       string
 }
 
-func GetenvOrDefault(key string, defaultValue string) string {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return defaultValue
-	}
-	return val
-}
-
-func getIntOrDefault(key string, defaultValue int) int {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return defaultValue
-	}
-	intVal, err := strconv.Atoi(val)
-	if err != nil {
-		return defaultValue
-	}
-	return intVal
-}
-
 func NewApp() App {
 	// Parse Redis connection from environment variables
-	redisAddr := GetenvOrDefault("REDIS_ADDR", "localhost:6379")
-	redisPassword := GetenvOrDefault("REDIS_PASSWORD", "")
-	redisDB := getIntOrDefault("REDIS_DB", 0)
+	redisAddr := common.GetenvOrDefault("REDIS_ADDR", "localhost:6379")
+	redisPassword := common.GetenvOrDefault("REDIS_PASSWORD", "")
+	redisDB := common.GetIntOrDefault("REDIS_DB", 0)
 
 	// Create asynq Redis connection options
 	redisOpt := asynq.RedisClientOpt{
@@ -66,7 +47,7 @@ func NewApp() App {
 		Timeout: 30 * time.Second,
 	}
 
-	filerURL := GetenvOrDefault("FILER_URL", "http://localhost:8888")
+	filerURL := common.GetenvOrDefault("FILER_URL", "http://localhost:8888")
 
 	// CORS is enabled only in prod profile
 	production := os.Getenv("PROFILE") == "PRODUCTION"
@@ -138,12 +119,6 @@ type taskStatus struct {
 	TaskId     string                 `json:"task_id"`
 	TaskStatus string                 `json:"task_status"`
 	Result     map[string]interface{} `json:"task_result"`
-}
-
-// Progress represents task progress information (matches worker definition)
-type Progress struct {
-	Percentage int    `json:"percentage"`
-	Message    string `json:"message,omitempty"`
 }
 
 // workersResponse represents the response for /api/workers endpoint
@@ -269,7 +244,7 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		response.TaskStatus = "PROGRESS"
 		// Parse progress from result
 		if len(taskInfo.Result) > 0 {
-			var progress Progress
+			var progress common.Progress
 			if err := json.Unmarshal(taskInfo.Result, &progress); err == nil {
 				response.Result = map[string]interface{}{
 					"percentage": progress.Percentage,
@@ -286,7 +261,7 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		response.TaskStatus = "SUCCESS"
 		// Parse final result
 		if len(taskInfo.Result) > 0 {
-			var progress Progress
+			var progress common.Progress
 			if err := json.Unmarshal(taskInfo.Result, &progress); err == nil {
 				response.Result = map[string]interface{}{
 					"percentage": progress.Percentage,
