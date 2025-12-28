@@ -18,6 +18,8 @@ services:
       - REDIS_PASSWORD=
       - REDIS_DB=0
       - FILER_URL=http://s3:8888
+      - TASK_ABANDONMENT_TIMEOUT=15
+      - TASK_ABANDONMENT_CHECK_INTERVAL=2
     ports:
       - 8080:8080
     depends_on:

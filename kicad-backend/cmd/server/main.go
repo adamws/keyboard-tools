@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"kicad-backend/internal/common"
@@ -15,12 +19,68 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// TaskAccessTracker tracks the last access time for each task to detect abandonment
+type TaskAccessTracker struct {
+	mu         sync.RWMutex
+	lastAccess map[string]time.Time
+	timeout    time.Duration
+}
+
+func NewTaskAccessTracker(timeoutMinutes int) *TaskAccessTracker {
+	return &TaskAccessTracker{
+		lastAccess: make(map[string]time.Time),
+		timeout:    time.Duration(timeoutMinutes) * time.Minute,
+	}
+}
+
+// UpdateAccess records that a task was accessed at the current time
+func (t *TaskAccessTracker) UpdateAccess(taskID string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.lastAccess[taskID] = time.Now()
+}
+
+// GetAbandonedTasks returns task IDs that haven't been accessed within the timeout period
+func (t *TaskAccessTracker) GetAbandonedTasks() []string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	now := time.Now()
+	abandoned := make([]string, 0)
+
+	for taskID, lastAccess := range t.lastAccess {
+		if now.Sub(lastAccess) > t.timeout {
+			abandoned = append(abandoned, taskID)
+		}
+	}
+
+	return abandoned
+}
+
+// RemoveTask removes a task from tracking (when completed or cancelled)
+func (t *TaskAccessTracker) RemoveTask(taskID string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.lastAccess, taskID)
+}
+
+// GetTrackedCount returns the number of tasks currently being tracked
+func (t *TaskAccessTracker) GetTrackedCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.lastAccess)
+}
+
 type App struct {
-	production     bool
-	asynqClient    *asynq.Client
-	asynqInspector *asynq.Inspector
-	httpClient     *http.Client
-	filerURL       string
+	production          bool
+	asynqClient         *asynq.Client
+	asynqInspector      *asynq.Inspector
+	httpClient          *http.Client
+	filerURL            string
+	taskAccessTracker   *TaskAccessTracker
+	shutdownCtx         context.Context
+	shutdownCancel      context.CancelFunc
+	abandonmentInterval time.Duration
 }
 
 func NewApp() App {
@@ -52,17 +112,120 @@ func NewApp() App {
 	// CORS is enabled only in prod profile
 	production := os.Getenv("PROFILE") == "PRODUCTION"
 
+	// Load abandonment configuration
+	abandonmentTimeoutMinutes := common.GetIntOrDefault("TASK_ABANDONMENT_TIMEOUT", 15)
+	abandonmentCheckInterval := common.GetIntOrDefault("TASK_ABANDONMENT_CHECK_INTERVAL", 2)
+
+	// Create task access tracker
+	taskAccessTracker := NewTaskAccessTracker(abandonmentTimeoutMinutes)
+
+	// Create shutdown context for graceful cleanup
+	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
+
+	log.Printf("Task abandonment detection enabled: timeout=%d minutes, check_interval=%d minutes",
+		abandonmentTimeoutMinutes, abandonmentCheckInterval)
+
 	app := App{
-		production:     production,
-		asynqClient:    asynqClient,
-		asynqInspector: asynqInspector,
-		httpClient:     httpClient,
-		filerURL:       filerURL,
+		production:          production,
+		asynqClient:         asynqClient,
+		asynqInspector:      asynqInspector,
+		httpClient:          httpClient,
+		filerURL:            filerURL,
+		taskAccessTracker:   taskAccessTracker,
+		shutdownCtx:         shutdownCtx,
+		shutdownCancel:      shutdownCancel,
+		abandonmentInterval: time.Duration(abandonmentCheckInterval) * time.Minute,
 	}
 	return app
 }
 
+// startAbandonmentDetector runs a background goroutine to detect and clean up abandoned tasks
+func (a *App) startAbandonmentDetector() {
+	go func() {
+		ticker := time.NewTicker(a.abandonmentInterval)
+		defer ticker.Stop()
+
+		log.Printf("Abandonment detector started: checking every %v", a.abandonmentInterval)
+
+		for {
+			select {
+			case <-a.shutdownCtx.Done():
+				log.Println("Abandonment detector shutting down...")
+				return
+
+			case <-ticker.C:
+				a.checkAbandonedTasks()
+			}
+		}
+	}()
+}
+
+// checkAbandonedTasks identifies and handles abandoned tasks
+func (a *App) checkAbandonedTasks() {
+	abandonedTaskIDs := a.taskAccessTracker.GetAbandonedTasks()
+
+	if len(abandonedTaskIDs) == 0 {
+		trackedCount := a.taskAccessTracker.GetTrackedCount()
+		log.Printf("[Abandonment Check] No abandoned tasks found (tracking %d tasks)", trackedCount)
+		return
+	}
+
+	log.Printf("[Abandonment Check] Found %d potentially abandoned tasks", len(abandonedTaskIDs))
+
+	for _, taskID := range abandonedTaskIDs {
+		a.handleAbandonedTask(taskID)
+	}
+}
+
+// handleAbandonedTask processes a single abandoned task
+func (a *App) handleAbandonedTask(taskID string) {
+	// Get task info to check current state
+	taskInfo, err := a.asynqInspector.GetTaskInfo("kicad", taskID)
+	if err != nil {
+		// Task might be archived or deleted
+		taskInfo, err = a.asynqInspector.GetTaskInfo("kicad:archived", taskID)
+		if err != nil {
+			log.Printf("[Abandonment] Task %s no longer exists, removing from tracking", taskID)
+			a.taskAccessTracker.RemoveTask(taskID)
+			return
+		}
+
+		log.Printf("[Abandonment] Task %s is archived, removing from tracking", taskID)
+		a.taskAccessTracker.RemoveTask(taskID)
+		return
+	}
+
+	// Handle based on task state
+	switch taskInfo.State {
+	case asynq.TaskStatePending, asynq.TaskStateRetry:
+		// Cancel pending/retry tasks
+		log.Printf("[Abandonment] Cancelling abandoned pending task: %s", taskID)
+		err := a.asynqInspector.DeleteTask("kicad", taskID)
+		if err != nil {
+			log.Printf("[Abandonment] Failed to cancel task %s: %v", taskID, err)
+		} else {
+			log.Printf("[Abandonment] Successfully cancelled abandoned task: %s", taskID)
+		}
+		a.taskAccessTracker.RemoveTask(taskID)
+
+	case asynq.TaskStateActive:
+		// Log but don't cancel active tasks (let 10min timeout handle it)
+		log.Printf("[Abandonment] Task %s is active but abandoned - will complete naturally", taskID)
+
+	case asynq.TaskStateCompleted, asynq.TaskStateArchived:
+		log.Printf("[Abandonment] Task %s is completed/archived, removing from tracking", taskID)
+		a.taskAccessTracker.RemoveTask(taskID)
+
+	default:
+		log.Printf("[Abandonment] Task %s in unexpected state: %v", taskID, taskInfo.State)
+		a.taskAccessTracker.RemoveTask(taskID)
+	}
+}
+
 func (a *App) Serve() error {
+	// Start abandonment detection background worker
+	a.startAbandonmentDetector()
+
 	router := mux.NewRouter()
 
 	var kicadRouter *mux.Router
@@ -75,6 +238,7 @@ func (a *App) Serve() error {
 
 	kicadPostNewTask := a.KicadPostNewTask
 	kicadGetTaskStatus := a.KicadGetTaskStatus
+	kicadDeleteTask := a.KicadDeleteTask
 	kicadGetTaskRender := a.KicadGetTaskRender
 	kicadGetTaskResult := a.KicadGetTaskResult
 	kicadGetWorkers := a.KicadGetWorkers
@@ -83,6 +247,7 @@ func (a *App) Serve() error {
 	if !a.production {
 		kicadPostNewTask = disableCors(kicadPostNewTask)
 		kicadGetTaskStatus = disableCors(kicadGetTaskStatus)
+		kicadDeleteTask = disableCors(kicadDeleteTask)
 		kicadGetTaskRender = disableCors(kicadGetTaskRender)
 		kicadGetTaskResult = disableCors(kicadGetTaskResult)
 		kicadGetWorkers = disableCors(kicadGetWorkers)
@@ -91,6 +256,7 @@ func (a *App) Serve() error {
 	// KiCad subdomain routes
 	kicadRouter.HandleFunc("/api/pcb", kicadPostNewTask)
 	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
+	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadDeleteTask).Methods("DELETE")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{name}", kicadGetTaskRender).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 	kicadRouter.HandleFunc("/api/workers", kicadGetWorkers).Methods("GET")
@@ -111,6 +277,24 @@ func (a *App) Serve() error {
 		ReadTimeout:  15 * time.Second,
 	}
 	log.Println("Web server is available on port 8080")
+
+	// Handle graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+		<-sigChan
+
+		log.Println("Shutdown signal received, stopping abandonment detector...")
+		a.shutdownCancel()
+
+		log.Println("Shutting down HTTP server...")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("Server shutdown error: %v", err)
+		}
+	}()
 
 	return srv.ListenAndServe()
 }
@@ -201,6 +385,9 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("Enqueued task: %s", taskInfo.ID)
 
+		// Start tracking this task for abandonment detection
+		a.taskAccessTracker.UpdateAccess(taskInfo.ID)
+
 		// Response with task ID
 		var response taskStatus
 		response.TaskId = taskInfo.ID
@@ -220,6 +407,9 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	taskID := vars["task_id"]
+
+	// Update last access time for abandonment detection
+	a.taskAccessTracker.UpdateAccess(taskID)
 
 	// Get task info from asynq
 	taskInfo, err := a.asynqInspector.GetTaskInfo("kicad", taskID)
@@ -302,6 +492,65 @@ func (a *App) KicadGetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+// KicadDeleteTask handles DELETE /api/pcb/{task_id} - Cancel pending tasks
+func (a *App) KicadDeleteTask(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	taskID := vars["task_id"]
+
+	log.Printf("[DELETE] Request to cancel task: %s", taskID)
+
+	// Get task info to check current state
+	taskInfo, err := a.asynqInspector.GetTaskInfo("kicad", taskID)
+	if err != nil {
+		// Check if task is already archived
+		taskInfo, err = a.asynqInspector.GetTaskInfo("kicad:archived", taskID)
+		if err != nil {
+			log.Printf("[DELETE] Task not found: %s", taskID)
+			sendErr(w, http.StatusNotFound, "Task not found")
+			return
+		}
+
+		log.Printf("[DELETE] Task already completed/archived: %s", taskID)
+		sendErr(w, http.StatusGone, "Task has already completed or failed")
+		return
+	}
+
+	// Check task state
+	switch taskInfo.State {
+	case asynq.TaskStatePending, asynq.TaskStateRetry:
+		// Cancel pending/retry task
+		err := a.asynqInspector.DeleteTask("kicad", taskID)
+		if err != nil {
+			log.Printf("[DELETE] Failed to cancel task %s: %v", taskID, err)
+			sendErr(w, http.StatusInternalServerError, "Failed to cancel task")
+			return
+		}
+
+		a.taskAccessTracker.RemoveTask(taskID)
+
+		log.Printf("[DELETE] Successfully cancelled task: %s", taskID)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"task_id": taskID,
+			"status":  "cancelled",
+			"message": "Task successfully cancelled",
+		})
+
+	case asynq.TaskStateActive:
+		log.Printf("[DELETE] Cannot cancel active task: %s", taskID)
+		sendErr(w, http.StatusConflict, "Cannot cancel task that is currently running")
+
+	case asynq.TaskStateCompleted, asynq.TaskStateArchived:
+		log.Printf("[DELETE] Task already completed: %s", taskID)
+		sendErr(w, http.StatusGone, "Task has already completed")
+
+	default:
+		log.Printf("[DELETE] Unknown task state for %s: %v", taskID, taskInfo.State)
+		sendErr(w, http.StatusInternalServerError, "Unknown task state")
+	}
 }
 
 func (a *App) KicadGetWorkers(w http.ResponseWriter, r *http.Request) {

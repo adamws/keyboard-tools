@@ -299,3 +299,173 @@ def test_get_task_render_before_request(pcb_endpoint):
     for side in ["front", "back"]:
         r = requests.get(f"{pcb_endpoint}/{task_id}/render/{side}", verify=False)
         assert r.status_code == 404
+
+
+# Task Cancellation Tests
+
+
+def test_cancel_nonexistent_task(pcb_endpoint):
+    """Test DELETE on a non-existent task should return 404."""
+    task_id = "non-existent-task-id"
+    r = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+    assert r.status_code == 404
+    response_json = r.json()
+    assert "error" in response_json
+    assert "not found" in response_json["error"].lower()
+
+
+def test_cancel_pending_task(request, pcb_endpoint):
+    """Test canceling a pending task should return 200 OK."""
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    # Submit task
+    r = requests.post(pcb_endpoint, json=request_data, verify=False)
+    assert r.status_code == 202
+    task_id = r.json()["task_id"]
+    logger.info(f"Created task for cancellation test: {task_id}")
+
+    # Cancel immediately while task is likely still pending
+    r = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+
+    # Should be 200 OK or 409 Conflict (if task started very quickly)
+    assert r.status_code in [200, 409], f"Unexpected status code: {r.status_code}"
+
+    if r.status_code == 200:
+        response_json = r.json()
+        assert response_json["task_id"] == task_id
+        assert response_json["status"] == "cancelled"
+        assert "message" in response_json
+        logger.info(f"Successfully cancelled task: {task_id}")
+    else:
+        logger.info(f"Task {task_id} already started, could not cancel (409 Conflict)")
+
+
+def test_cancel_completed_task(request, tmpdir, pcb_endpoint):
+    """Test canceling a completed task should return 410 Gone."""
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    # Submit task and wait for completion
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_id, task_done = results[0][0], results[0][1]
+    assert task_done == True, "Task should complete successfully"
+    logger.info(f"Task completed: {task_id}")
+
+    # Try to cancel completed task
+    r = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+    assert r.status_code == 410, f"Expected 410 Gone, got {r.status_code}"
+    response_json = r.json()
+    assert "error" in response_json
+    assert "completed" in response_json["error"].lower() or "gone" in response_json["error"].lower()
+
+
+def test_cancel_active_task(request, pcb_endpoint):
+    """Test that canceling an active (running) task returns 409 Conflict.
+
+    This test attempts to cancel a task while it's actively running.
+    Due to timing, this may not always catch the task in ACTIVE state,
+    but will verify the 409 response when it does.
+    """
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    # Submit task
+    r = requests.post(pcb_endpoint, json=request_data, verify=False)
+    assert r.status_code == 202
+    task_id = r.json()["task_id"]
+    logger.info(f"Created task for active cancellation test: {task_id}")
+
+    # Poll until task becomes active, then try to cancel
+    max_attempts = 20
+    found_active = False
+
+    for attempt in range(max_attempts):
+        time.sleep(0.5)  # Check every 500ms
+
+        # Check task status
+        r_status = requests.get(f"{pcb_endpoint}/{task_id}", verify=False)
+        if r_status.status_code == 200:
+            status = r_status.json()["task_status"]
+            logger.info(f"Attempt {attempt + 1}: Task status = {status}")
+
+            if status == "PROGRESS":
+                # Task is active/running, try to cancel
+                found_active = True
+                r_delete = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+
+                # Should return 409 Conflict for active tasks
+                assert r_delete.status_code == 409, f"Expected 409 Conflict for active task, got {r_delete.status_code}"
+                response_json = r_delete.json()
+                assert "error" in response_json
+                assert "running" in response_json["error"].lower() or "active" in response_json["error"].lower()
+                logger.info(f"Successfully verified 409 Conflict for active task: {task_id}")
+                break
+
+            elif status == "SUCCESS" or status == "FAILURE":
+                # Task completed before we could cancel it
+                logger.warning(f"Task completed before cancellation attempt: {status}")
+                break
+
+    # If we never caught it in ACTIVE state, log a warning but don't fail
+    # (this is a timing-dependent test)
+    if not found_active:
+        logger.warning(f"Could not catch task {task_id} in ACTIVE state within {max_attempts} attempts")
+        pytest.skip("Could not catch task in ACTIVE state (timing-dependent test)")
+
+
+def test_double_cancellation(request, pcb_endpoint):
+    """Test that canceling an already-cancelled task returns 404."""
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    # Submit task
+    r = requests.post(pcb_endpoint, json=request_data, verify=False)
+    assert r.status_code == 202
+    task_id = r.json()["task_id"]
+    logger.info(f"Created task for double cancellation test: {task_id}")
+
+    # First cancellation - should succeed or fail with 409 if already active
+    r_first = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+    assert r_first.status_code in [200, 409], f"First cancellation failed with unexpected code: {r_first.status_code}"
+
+    if r_first.status_code == 200:
+        logger.info(f"First cancellation succeeded: {task_id}")
+
+        # Second cancellation - should return 404 since task was removed
+        time.sleep(0.5)  # Small delay to ensure cleanup
+        r_second = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
+        assert r_second.status_code == 404, f"Expected 404 for second cancellation, got {r_second.status_code}"
+        response_json = r_second.json()
+        assert "error" in response_json
+        assert "not found" in response_json["error"].lower()
+        logger.info(f"Successfully verified 404 for double cancellation: {task_id}")
+    else:
+        logger.info(f"Task {task_id} was already active (409), skipping double cancellation test")
