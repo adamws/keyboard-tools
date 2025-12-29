@@ -74,21 +74,11 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 	// Generate KiCad project
 	workDir, err := kicad.NewPCB(taskID, taskRequest)
 	if err != nil {
-		log.Printf("[Task %s] Error generating PCB: %v", taskID, err)
-
-		// Check if this is a validation error (non-retriable)
-		if kicad.IsValidationError(err) {
-			log.Printf("[Task %s] Validation error detected, will not retry", taskID)
-			errMsg := fmt.Sprintf("Invalid input: %v", err)
-			w.reportProgress(task, 0, errMsg)
-			// Wrap with SkipRetry to prevent retries, but include the error message
-			return fmt.Errorf("%s: %w", errMsg, asynq.SkipRetry)
-		}
-
-		// Transient error, allow retry
-		log.Printf("[Task %s] Transient error, will retry", taskID)
-		w.reportProgress(task, 0, fmt.Sprintf("PCB generation failed: %v", err))
-		return fmt.Errorf("PCB generation failed: %w", err)
+		log.Printf("[Task %s] PCB generation failed (non-retriable): %v", taskID, err)
+		errMsg := fmt.Sprintf("PCB generation failed: %v", err)
+		w.reportProgress(task, 0, errMsg)
+		// All PCB generation errors are non-retriable
+		return fmt.Errorf("%s: %w", errMsg, asynq.SkipRetry)
 	}
 
 	log.Printf("[Task %s] PCB generated successfully, work directory: %s", taskID, workDir)

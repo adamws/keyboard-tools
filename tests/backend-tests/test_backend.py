@@ -227,7 +227,159 @@ def test_incorrect_layout(tmpdir, pcb_endpoint):
     assert task_done == True, "Task did not end"
     # With asynq, validation errors return structured error messages (not Python tracebacks)
     assert task_result.get("error") is not None, "Expected error in task result"
-    assert "invalid layout metadata" in str(task_result).lower(), f"Expected validation error, got: {task_result}"
+    assert (
+        "invalid layout metadata" in str(task_result).lower()
+    ), f"Expected validation error, got: {task_result}"
+
+
+# Error Details Tests
+
+
+def test_failure_includes_error_details(tmpdir, pcb_endpoint):
+    """Test that validation failures include detailed error information."""
+    layout_file = f"{tmpdir}/invalid_metadata.json"
+    # Create layout with missing required metadata
+    invalid_layout = {"keys": []}  # Missing 'meta' field
+    with open(layout_file, "w") as f:
+        json.dump(invalid_layout, f)
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_done, task_result = results[0][1], results[0][2]
+    assert task_done == True, "Task should complete (with failure)"
+
+    # Verify error field exists
+    assert task_result.get("error") is not None, "Expected error field in task result"
+    error_msg = str(task_result.get("error"))
+
+    # Verify error contains meaningful details (not just a generic message)
+    assert (
+        len(error_msg) > 20
+    ), f"Error message too short, expected details: {error_msg}"
+    assert (
+        "invalid" in error_msg.lower() or "metadata" in error_msg.lower()
+    ), f"Expected specific error details, got: {error_msg}"
+
+    logger.info(f"Error details received: {error_msg[:200]}")
+
+
+def test_invalid_footprint_format_error_details(tmpdir, pcb_endpoint):
+    """Test that invalid footprint format errors include detailed information."""
+    layout_file = f"{tmpdir}/valid_layout_invalid_footprint.json"
+    # Use a simple valid layout structure
+    layout_data = {"meta": {"name": "test"}, "keys": [{"x": 0, "y": 0}]}
+    with open(layout_file, "w") as f:
+        json.dump(layout_data, f)
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    # Provide invalid footprint format (missing colon separator)
+    invalid_settings = {
+        "controllerCircuit": "None",
+        "routing": "Full",
+        "switchFootprint": "InvalidFormatNoColon",  # Should be "lib:footprint"
+        "diodeFootprint": "Diode_SMD:D_SOD-123F",
+    }
+    request_data = {"layout": layout_json, "settings": invalid_settings}
+
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_done, task_result = results[0][1], results[0][2]
+    assert task_done == True, "Task should complete (with failure)"
+
+    # Verify error details are present
+    assert task_result.get("error") is not None, "Expected error field in task result"
+    error_msg = str(task_result.get("error"))
+
+    # Verify error is descriptive
+    assert len(error_msg) > 30, f"Error message too short: {error_msg}"
+    assert (
+        "footprint" in error_msg.lower()
+    ), f"Expected footprint-related error: {error_msg}"
+
+    # Verify it mentions the format requirement
+    assert (
+        "format" in error_msg.lower() or ":" in error_msg or "lib" in error_msg.lower()
+    ), f"Expected error to mention format requirement: {error_msg}"
+
+    logger.info(f"Footprint format error details: {error_msg[:200]}")
+
+
+def test_kbplacer_failure_includes_build_log(request, pcb_endpoint):
+    """Test that kbplacer failures include build log content for debugging.
+
+    This test creates a layout that will pass validation but cause kbplacer to fail,
+    ensuring that the build log is included in the error response.
+    """
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    # Modify layout to cause kbplacer failure (invalid key data)
+    # Add a key with invalid properties that will trigger kbplacer error
+    if "keys" in layout_json:
+        # Add a malformed key entry
+        layout_json["keys"].append(
+            {
+                "x": "invalid_x_coordinate",  # Should be number, not string
+                "y": "invalid_y_coordinate",
+                "w": -5,  # Negative width
+                "h": -5,  # Negative height
+            }
+        )
+
+    request_data = {"layout": layout_json, "settings": DEFAULT_SETTINGS}
+
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_done, task_result = results[0][1], results[0][2]
+    assert task_done == True, "Task should complete (with failure)"
+
+    # Verify error exists
+    assert task_result.get("error") is not None, "Expected error in task result"
+    error_msg = str(task_result.get("error"))
+
+    # Verify error contains substantial details (build log content)
+    assert (
+        len(error_msg) > 100
+    ), f"Error message should include build log details, got {len(error_msg)} chars: {error_msg[:100]}"
+
+    # Check for indicators that build log was included
+    # These are common patterns in build logs or error details
+    build_log_indicators = [
+        "kbplacer",
+        "failed",
+        "error",
+        "traceback",
+        "build log",
+        "INFO",
+        "ERROR",
+        "WARNING",
+    ]
+
+    has_indicator = any(
+        indicator.lower() in error_msg.lower() for indicator in build_log_indicators
+    )
+    assert (
+        has_indicator
+    ), f"Expected error to include build log details with indicators like {build_log_indicators}, got: {error_msg[:200]}"
+
+    logger.info(f"Build log error length: {len(error_msg)} chars")
+    logger.info(f"Build log error preview: {error_msg[:300]}")
 
 
 def test_multiple_concurrent_requests(request, pcb_endpoint):
@@ -347,7 +499,7 @@ def test_cancel_pending_task(request, pcb_endpoint):
         logger.info(f"Task {task_id} already started, could not cancel (409 Conflict)")
 
 
-def test_cancel_completed_task(request, tmpdir, pcb_endpoint):
+def test_cancel_completed_task(request, pcb_endpoint):
     """Test canceling a completed task should return 410 Gone."""
     filename = request.module.__file__
     test_dir, _ = os.path.splitext(filename)
@@ -372,7 +524,10 @@ def test_cancel_completed_task(request, tmpdir, pcb_endpoint):
     assert r.status_code == 410, f"Expected 410 Gone, got {r.status_code}"
     response_json = r.json()
     assert "error" in response_json
-    assert "completed" in response_json["error"].lower() or "gone" in response_json["error"].lower()
+    assert (
+        "completed" in response_json["error"].lower()
+        or "gone" in response_json["error"].lower()
+    )
 
 
 def test_cancel_active_task(request, pcb_endpoint):
@@ -416,11 +571,18 @@ def test_cancel_active_task(request, pcb_endpoint):
                 r_delete = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
 
                 # Should return 409 Conflict for active tasks
-                assert r_delete.status_code == 409, f"Expected 409 Conflict for active task, got {r_delete.status_code}"
+                assert (
+                    r_delete.status_code == 409
+                ), f"Expected 409 Conflict for active task, got {r_delete.status_code}"
                 response_json = r_delete.json()
                 assert "error" in response_json
-                assert "running" in response_json["error"].lower() or "active" in response_json["error"].lower()
-                logger.info(f"Successfully verified 409 Conflict for active task: {task_id}")
+                assert (
+                    "running" in response_json["error"].lower()
+                    or "active" in response_json["error"].lower()
+                )
+                logger.info(
+                    f"Successfully verified 409 Conflict for active task: {task_id}"
+                )
                 break
 
             elif status == "SUCCESS" or status == "FAILURE":
@@ -431,7 +593,9 @@ def test_cancel_active_task(request, pcb_endpoint):
     # If we never caught it in ACTIVE state, log a warning but don't fail
     # (this is a timing-dependent test)
     if not found_active:
-        logger.warning(f"Could not catch task {task_id} in ACTIVE state within {max_attempts} attempts")
+        logger.warning(
+            f"Could not catch task {task_id} in ACTIVE state within {max_attempts} attempts"
+        )
         pytest.skip("Could not catch task in ACTIVE state (timing-dependent test)")
 
 
@@ -454,7 +618,10 @@ def test_double_cancellation(request, pcb_endpoint):
 
     # First cancellation - should succeed or fail with 409 if already active
     r_first = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
-    assert r_first.status_code in [200, 409], f"First cancellation failed with unexpected code: {r_first.status_code}"
+    assert r_first.status_code in [
+        200,
+        409,
+    ], f"First cancellation failed with unexpected code: {r_first.status_code}"
 
     if r_first.status_code == 200:
         logger.info(f"First cancellation succeeded: {task_id}")
@@ -462,10 +629,14 @@ def test_double_cancellation(request, pcb_endpoint):
         # Second cancellation - should return 404 since task was removed
         time.sleep(0.5)  # Small delay to ensure cleanup
         r_second = requests.delete(f"{pcb_endpoint}/{task_id}", verify=False)
-        assert r_second.status_code == 404, f"Expected 404 for second cancellation, got {r_second.status_code}"
+        assert (
+            r_second.status_code == 404
+        ), f"Expected 404 for second cancellation, got {r_second.status_code}"
         response_json = r_second.json()
         assert "error" in response_json
         assert "not found" in response_json["error"].lower()
         logger.info(f"Successfully verified 404 for double cancellation: {task_id}")
     else:
-        logger.info(f"Task {task_id} was already active (409), skipping double cancellation test")
+        logger.info(
+            f"Task {task_id} was already active (409), skipping double cancellation test"
+        )

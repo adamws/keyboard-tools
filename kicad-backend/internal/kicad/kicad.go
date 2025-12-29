@@ -66,7 +66,22 @@ func RunKBPlacer(
 
 	// Run command
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("kbplacer failed: %w", err)
+		// Read log file to get detailed error information
+		logFile.Close() // Close to ensure all content is flushed
+		logContent, readErr := os.ReadFile(logPath)
+		if readErr != nil {
+			// If we can't read the log, return the generic error
+			return fmt.Errorf("kbplacer failed: %w (unable to read log: %v)", err, readErr)
+		}
+
+		// Include log contents in error message for user feedback
+		logStr := string(logContent)
+		if len(logStr) > 5000 {
+			// Truncate very long logs, keep last 5000 chars (most recent output)
+			logStr = "...[truncated]...\n" + logStr[len(logStr)-5000:]
+		}
+
+		return fmt.Errorf("kbplacer failed: %w\n\nBuild log:\n%s", err, logStr)
 	}
 
 	return nil
@@ -130,8 +145,13 @@ func RunKiCadSVG(pcbFile string, layers string, outputFile string) error {
 
 	cmd := exec.Command("kicad-cli", args...)
 
-	// Run command
-	if err := cmd.Run(); err != nil {
+	// Capture output for error reporting
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		outputStr := string(output)
+		if outputStr != "" {
+			return fmt.Errorf("kicad-cli svg export failed: %w\nOutput:\n%s", err, outputStr)
+		}
 		return fmt.Errorf("kicad-cli svg export failed: %w", err)
 	}
 
@@ -171,15 +191,21 @@ func GenerateSchematicImage(schematicPath string, logPath string) error {
 
 	cmd := exec.Command("kicad-cli", args...)
 
-	// Run command (don't check error yet, we'll verify output file exists)
-	_ = cmd.Run()
+	// Capture output for error reporting
+	output, cmdErr := cmd.CombinedOutput()
 
 	// Check if output file was created
 	name := strings.TrimSuffix(filepath.Base(schematicPath), filepath.Ext(schematicPath))
 	expectedResult := filepath.Join(schematicDir, name+".svg")
 
 	if _, err := os.Stat(expectedResult); os.IsNotExist(err) {
-		return fmt.Errorf("failed to generate schematic image")
+		outputStr := string(output)
+		if outputStr != "" && cmdErr != nil {
+			return fmt.Errorf("failed to generate schematic image: %w\nOutput:\n%s", cmdErr, outputStr)
+		} else if cmdErr != nil {
+			return fmt.Errorf("failed to generate schematic image: %w", cmdErr)
+		}
+		return fmt.Errorf("failed to generate schematic image: output file not created")
 	}
 
 	// Copy to logs directory
