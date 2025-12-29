@@ -53,7 +53,7 @@ func RunKBPlacer(
 	cmd := exec.Command("python3", args...)
 
 	// Open log file for output
-	log.Printf("kcplbaer logpath: %s", logPath)
+	log.Printf("kbplacer logpath: %s", logPath)
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return fmt.Errorf("failed to create log file: %w", err)
