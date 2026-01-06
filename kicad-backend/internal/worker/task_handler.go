@@ -21,11 +21,19 @@ const (
 type TaskRequest struct {
 	Layout   map[string]interface{} `json:"layout"`
 	Settings struct {
-		SwitchFootprint   string `json:"switchFootprint"`
-		DiodeFootprint    string `json:"diodeFootprint"`
-		Routing           string `json:"routing"`
-		KeyDistance       string `json:"keyDistance"`
-		ControllerCircuit string `json:"controllerCircuit"`
+		SwitchFootprint   string  `json:"switchFootprint"`
+		DiodeFootprint    string  `json:"diodeFootprint"`
+		Routing           string  `json:"routing"`
+		KeyDistance       string  `json:"keyDistance"`
+		ControllerCircuit string  `json:"controllerCircuit"`
+		// Switch configuration
+		SwitchRotation    int     `json:"switchRotation"`
+		SwitchSide        string  `json:"switchSide"`
+		// Diode configuration
+		DiodeRotation     int     `json:"diodeRotation"`
+		DiodeSide         string  `json:"diodeSide"`
+		DiodePositionX    float64 `json:"diodePositionX"`
+		DiodePositionY    float64 `json:"diodePositionY"`
 	} `json:"settings"`
 }
 

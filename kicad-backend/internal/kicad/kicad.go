@@ -26,6 +26,12 @@ func RunKBPlacer(
 	routeRowsAndColumns bool,
 	switchFootprint string,
 	diodeFootprint string,
+	switchRotation int,
+	switchSide string,
+	diodeRotation int,
+	diodeSide string,
+	diodePositionX float64,
+	diodePositionY float64,
 	logPath string,
 ) error {
 	// Build command arguments
@@ -48,6 +54,16 @@ func RunKBPlacer(
 	if routeRowsAndColumns {
 		args = append(args, "--route-rows-and-columns")
 	}
+
+	// Add switch configuration argument
+	// Format: --switch "SW{} <rotation> <side>"
+	switchArg := fmt.Sprintf("SW{} %d %s", switchRotation, switchSide)
+	args = append(args, "--switch", switchArg)
+
+	// Add diode configuration argument
+	// Format: --diode "D{} CUSTOM <x> <y> <rotation> <side>"
+	diodeArg := fmt.Sprintf("D{} CUSTOM %f %f %d %s", diodePositionX, diodePositionY, diodeRotation, diodeSide)
+	args = append(args, "--diode", diodeArg)
 
 	// Create command
 	cmd := exec.Command("python3", args...)
@@ -292,6 +308,54 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 	diodeFootprintSetting, _ := settings["diodeFootprint"].(string)
 	routing, _ := settings["routing"].(string)
 
+	// Extract switch configuration settings
+	switchRotationRaw, ok := settings["switchRotation"]
+	if !ok {
+		return "", ErrMissingSwitchRotation
+	}
+	switchRotation, ok := switchRotationRaw.(float64) // JSON numbers come as float64
+	if !ok {
+		return "", ErrInvalidSwitchRotation
+	}
+	switchRotationInt := int(switchRotation)
+
+	switchSide, ok := settings["switchSide"].(string)
+	if !ok {
+		return "", ErrMissingSwitchSide
+	}
+	if switchSide != "FRONT" && switchSide != "BACK" {
+		return "", ErrInvalidSwitchSide
+	}
+
+	// Extract diode configuration settings
+	diodeRotationRaw, ok := settings["diodeRotation"]
+	if !ok {
+		return "", ErrMissingDiodeRotation
+	}
+	diodeRotation, ok := diodeRotationRaw.(float64) // JSON numbers come as float64
+	if !ok {
+		return "", ErrInvalidDiodeRotation
+	}
+	diodeRotationInt := int(diodeRotation)
+
+	diodeSide, ok := settings["diodeSide"].(string)
+	if !ok {
+		return "", ErrMissingDiodeSide
+	}
+	if diodeSide != "FRONT" && diodeSide != "BACK" {
+		return "", ErrInvalidDiodeSide
+	}
+
+	diodePositionX, ok := settings["diodePositionX"].(float64)
+	if !ok {
+		return "", ErrMissingDiodePositionX
+	}
+
+	diodePositionY, ok := settings["diodePositionY"].(float64)
+	if !ok {
+		return "", ErrMissingDiodePositionY
+	}
+
 	// Split footprint settings into library nickname and footprint name
 	// Format: "lib_nickname:footprint"
 	switchParts := strings.SplitN(switchFootprintSetting, ":", 2)
@@ -368,6 +432,12 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 		routeRowsAndColumns,
 		switchFootprint,
 		diodeFootprint,
+		switchRotationInt,
+		switchSide,
+		diodeRotationInt,
+		diodeSide,
+		diodePositionX,
+		diodePositionY,
 		logPath,
 	); err != nil {
 		return "", err

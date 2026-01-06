@@ -25,6 +25,14 @@ DEFAULT_SETTINGS = {
     "routing": "Full",
     "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
     "diodeFootprint": "Diode_SMD:D_SOD-123F",
+    # Switch configuration
+    "switchRotation": 0,
+    "switchSide": "FRONT",
+    # Diode configuration
+    "diodeRotation": 0,
+    "diodeSide": "BACK",
+    "diodePositionX": 5.0,
+    "diodePositionY": -4.5,
 }
 
 
@@ -166,6 +174,12 @@ def test_correct_layout(
         "routing": routing,
         "switchFootprint": FOOTPRINTS_OPTIONS_MAP[switch_footprint],
         "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        "switchRotation": 0,
+        "switchSide": "FRONT",
+        "diodeRotation": 0,
+        "diodeSide": "BACK",
+        "diodePositionX": 5.0,
+        "diodePositionY": -4.5,
     }
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
 
@@ -184,6 +198,55 @@ def test_layout_with_non_default_key_distance(request, tmpdir, pcb_endpoint):
     layout_file = f"{test_dir}/2x2_internal_custom_sizing.json"
 
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, DEFAULT_SETTINGS)
+
+
+@pytest.mark.parametrize(
+    "switch_rotation,switch_side,diode_rotation,diode_side,diode_x,diode_y",
+    [
+        # Test different rotations with default sides
+        (0, "FRONT", 0, "BACK", 5.0, -4.5),
+        (90, "FRONT", 90, "BACK", 5.0, -4.5),
+        (180, "FRONT", 180, "BACK", 5.0, -4.5),
+        (270, "FRONT", 270, "BACK", 5.0, -4.5),
+        # Test different side combinations
+        (0, "FRONT", 0, "FRONT", 5.0, -4.5),
+        (0, "BACK", 0, "BACK", 5.0, -4.5),
+        (0, "BACK", 0, "FRONT", 5.0, -4.5),
+        # Test different diode positions
+        (0, "FRONT", 0, "BACK", 0.0, 0.0),
+        (0, "FRONT", 0, "BACK", -5.0, 4.5),
+        (0, "FRONT", 0, "BACK", 10.0, -10.0),
+    ],
+)
+def test_switch_diode_configurations(
+    request,
+    tmpdir,
+    pcb_endpoint,
+    switch_rotation,
+    switch_side,
+    diode_rotation,
+    diode_side,
+    diode_x,
+    diode_y,
+):
+    """Test different switch and diode configuration combinations."""
+    filename = request.module.__file__
+    test_dir, _ = os.path.splitext(filename)
+    layout_file = f"{test_dir}/2x2_internal.json"
+
+    settings = {
+        "controllerCircuit": "None",
+        "routing": "Full",
+        "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
+        "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        "switchRotation": switch_rotation,
+        "switchSide": switch_side,
+        "diodeRotation": diode_rotation,
+        "diodeSide": diode_side,
+        "diodePositionX": diode_x,
+        "diodePositionY": diode_y,
+    }
+    layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
 
 
 def test_layout_with_name(request, tmpdir, pcb_endpoint):
@@ -286,6 +349,12 @@ def test_invalid_footprint_format_error_details(tmpdir, pcb_endpoint):
         "routing": "Full",
         "switchFootprint": "InvalidFormatNoColon",  # Should be "lib:footprint"
         "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        "switchRotation": 0,
+        "switchSide": "FRONT",
+        "diodeRotation": 0,
+        "diodeSide": "BACK",
+        "diodePositionX": 5.0,
+        "diodePositionY": -4.5,
     }
     request_data = {"layout": layout_json, "settings": invalid_settings}
 
@@ -312,6 +381,94 @@ def test_invalid_footprint_format_error_details(tmpdir, pcb_endpoint):
     ), f"Expected error to mention format requirement: {error_msg}"
 
     logger.info(f"Footprint format error details: {error_msg[:200]}")
+
+
+def test_missing_switch_rotation_field(tmpdir, pcb_endpoint):
+    """Test that missing switchRotation field returns a detailed error."""
+    layout_file = f"{tmpdir}/valid_layout_missing_field.json"
+    layout_data = {"meta": {"name": "test"}, "keys": [{"x": 0, "y": 0}]}
+    with open(layout_file, "w") as f:
+        json.dump(layout_data, f)
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    # Settings missing switchRotation field
+    incomplete_settings = {
+        "controllerCircuit": "None",
+        "routing": "Full",
+        "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
+        "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        # Missing switchRotation
+        "switchSide": "FRONT",
+        "diodeRotation": 0,
+        "diodeSide": "BACK",
+        "diodePositionX": 5.0,
+        "diodePositionY": -4.5,
+    }
+    request_data = {"layout": layout_json, "settings": incomplete_settings}
+
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_done, task_result = results[0][1], results[0][2]
+    assert task_done == True, "Task should complete (with failure)"
+
+    # Verify error details are present
+    assert task_result.get("error") is not None, "Expected error field in task result"
+    error_msg = str(task_result.get("error"))
+
+    # Verify error mentions the missing field
+    assert (
+        "switchRotation" in error_msg or "switch" in error_msg.lower()
+    ), f"Expected error about missing switchRotation: {error_msg}"
+
+    logger.info(f"Missing field error: {error_msg[:200]}")
+
+
+def test_invalid_switch_side_value(tmpdir, pcb_endpoint):
+    """Test that invalid switchSide value returns a detailed error."""
+    layout_file = f"{tmpdir}/valid_layout_invalid_side.json"
+    layout_data = {"meta": {"name": "test"}, "keys": [{"x": 0, "y": 0}]}
+    with open(layout_file, "w") as f:
+        json.dump(layout_data, f)
+
+    with open(layout_file) as f:
+        layout_json = json.loads(f.read())
+
+    # Settings with invalid switchSide value
+    invalid_settings = {
+        "controllerCircuit": "None",
+        "routing": "Full",
+        "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
+        "diodeFootprint": "Diode_SMD:D_SOD-123F",
+        "switchRotation": 0,
+        "switchSide": "MIDDLE",  # Invalid value, should be FRONT or BACK
+        "diodeRotation": 0,
+        "diodeSide": "BACK",
+        "diodePositionX": 5.0,
+        "diodePositionY": -4.5,
+    }
+    request_data = {"layout": layout_json, "settings": invalid_settings}
+
+    results = [None]
+    run_pcb_task(pcb_endpoint, request_data, results, 0)
+
+    assert results[0]
+    task_done, task_result = results[0][1], results[0][2]
+    assert task_done == True, "Task should complete (with failure)"
+
+    # Verify error details are present
+    assert task_result.get("error") is not None, "Expected error field in task result"
+    error_msg = str(task_result.get("error"))
+
+    # Verify error mentions the invalid side value
+    assert (
+        "switchSide" in error_msg or "FRONT" in error_msg or "BACK" in error_msg
+    ), f"Expected error about invalid switchSide: {error_msg}"
+
+    logger.info(f"Invalid side value error: {error_msg[:200]}")
 
 
 def test_kbplacer_failure_includes_build_log(request, pcb_endpoint):
@@ -419,6 +576,12 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             "routing": random.choice(routing_options),
             "switchFootprint": random.choice(footprint_options),
             "diodeFootprint": "Diode_SMD:D_SOD-123F",
+            "switchRotation": 0,
+            "switchSide": "FRONT",
+            "diodeRotation": 0,
+            "diodeSide": "BACK",
+            "diodePositionX": 5.0,
+            "diodePositionY": -4.5,
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])
