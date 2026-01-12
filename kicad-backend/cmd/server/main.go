@@ -73,6 +73,7 @@ func (t *TaskAccessTracker) GetTrackedCount() int {
 
 type App struct {
 	production          bool
+	corsAllowedOrigin   string
 	asynqClient         *asynq.Client
 	asynqInspector      *asynq.Inspector
 	httpClient          *http.Client
@@ -111,6 +112,13 @@ func NewApp() App {
 
 	// CORS is enabled only in prod profile
 	production := os.Getenv("PROFILE") == "PRODUCTION"
+	corsAllowedOrigin := common.GetenvOrDefault("CORS_ALLOWED_ORIGIN", "https://editor.keyboard-tools.xyz")
+
+	log.Printf("Environment configuration:")
+	log.Printf("  PROFILE=%s (production=%v)", os.Getenv("PROFILE"), production)
+	log.Printf("  CORS_ALLOWED_ORIGIN=%s", corsAllowedOrigin)
+	log.Printf("  REDIS_ADDR=%s", redisAddr)
+	log.Printf("  FILER_URL=%s", filerURL)
 
 	// Load abandonment configuration
 	abandonmentTimeoutMinutes := common.GetIntOrDefault("TASK_ABANDONMENT_TIMEOUT", 15)
@@ -127,6 +135,7 @@ func NewApp() App {
 
 	app := App{
 		production:          production,
+		corsAllowedOrigin:   corsAllowedOrigin,
 		asynqClient:         asynqClient,
 		asynqInspector:      asynqInspector,
 		httpClient:          httpClient,
@@ -243,18 +252,48 @@ func (a *App) Serve() error {
 	kicadGetTaskResult := a.KicadGetTaskResult
 	kicadGetWorkers := a.KicadGetWorkers
 
-	// disable cors for local development
+	// Apply CORS middleware
 	if !a.production {
+		// Development: permissive CORS for all origins
 		kicadPostNewTask = disableCors(kicadPostNewTask)
 		kicadGetTaskStatus = disableCors(kicadGetTaskStatus)
 		kicadDeleteTask = disableCors(kicadDeleteTask)
 		kicadGetTaskRender = disableCors(kicadGetTaskRender)
 		kicadGetTaskResult = disableCors(kicadGetTaskResult)
 		kicadGetWorkers = disableCors(kicadGetWorkers)
+	} else {
+		// Production: restricted CORS with configured origin
+		kicadPostNewTask = enableCorsWithOrigin(kicadPostNewTask, a.corsAllowedOrigin)
+		kicadGetTaskStatus = enableCorsWithOrigin(kicadGetTaskStatus, a.corsAllowedOrigin)
+		kicadDeleteTask = enableCorsWithOrigin(kicadDeleteTask, a.corsAllowedOrigin)
+		kicadGetTaskRender = enableCorsWithOrigin(kicadGetTaskRender, a.corsAllowedOrigin)
+		kicadGetTaskResult = enableCorsWithOrigin(kicadGetTaskResult, a.corsAllowedOrigin)
+		kicadGetWorkers = enableCorsWithOrigin(kicadGetWorkers, a.corsAllowedOrigin)
 	}
 
+	// Handle OPTIONS for all API routes first (CORS preflight)
+	kicadRouter.PathPrefix("/api/").Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		if a.production {
+			// Production: check against allowed origin
+			if origin == a.corsAllowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Header().Set("Access-Control-Max-Age", "86400")
+			}
+		} else {
+			// Development: permissive CORS
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// KiCad subdomain routes
-	kicadRouter.HandleFunc("/api/pcb", kicadPostNewTask)
+	kicadRouter.HandleFunc("/api/pcb", kicadPostNewTask).Methods("POST")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadGetTaskStatus).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}", kicadDeleteTask).Methods("DELETE")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{name}", kicadGetTaskRender).Methods("GET")
@@ -676,6 +715,29 @@ func disableCors(h http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "*")
+		h(w, r)
+	}
+}
+
+// enableCorsWithOrigin enables CORS with a specific allowed origin
+func enableCorsWithOrigin(h http.HandlerFunc, allowedOrigin string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		// Allow the specified origin
+		if origin == allowedOrigin {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "86400")
+		}
+
+		// Handle preflight OPTIONS request
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		h(w, r)
 	}
 }
