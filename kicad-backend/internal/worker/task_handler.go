@@ -79,8 +79,8 @@ func (w *Worker) HandleGenerateKicadProject(ctx context.Context, task *asynq.Tas
 		log.Printf("[Task %s] Failed to report progress: %v", taskID, err)
 	}
 
-	// Generate KiCad project
-	workDir, err := kicad.NewPCB(taskID, taskRequest)
+	// Generate KiCad project (pass context for cancellation support)
+	workDir, err := kicad.NewPCB(ctx, taskID, taskRequest)
 	if err != nil {
 		log.Printf("[Task %s] PCB generation failed (non-retriable): %v", taskID, err)
 		errMsg := fmt.Sprintf("PCB generation failed: %v", err)

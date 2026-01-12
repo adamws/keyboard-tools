@@ -1,6 +1,7 @@
 package kicad
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Constants for SVG export templates and library paths
@@ -20,6 +22,7 @@ const (
 
 // RunKBPlacer runs the kbplacer tool to generate KiCad PCB and schematic files
 func RunKBPlacer(
+	ctx context.Context,
 	pcbPath string,
 	layoutPath string,
 	routeSwitchesWithDiodes bool,
@@ -65,8 +68,8 @@ func RunKBPlacer(
 	diodeArg := fmt.Sprintf("D{} CUSTOM %f %f %d %s", diodePositionX, diodePositionY, diodeRotation, diodeSide)
 	args = append(args, "--diode", diodeArg)
 
-	// Create command
-	cmd := exec.Command("python3", args...)
+	// Create command with context (allows cancellation if task times out)
+	cmd := exec.CommandContext(ctx, "python3", args...)
 
 	// Open log file for output
 	log.Printf("kbplacer logpath: %s", logPath)
@@ -80,8 +83,16 @@ func RunKBPlacer(
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
-	// Run command
-	if err := cmd.Run(); err != nil {
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start kbplacer: %w", err)
+	}
+
+	// Wait for process to complete
+	cmdErr := cmd.Wait()
+
+	// Check if we had an error
+	if cmdErr != nil {
 		// Read log file to get detailed error information
 		logFile.Close() // Close to ensure all content is flushed
 		logContent, readErr := os.ReadFile(logPath)
@@ -291,7 +302,9 @@ func CreateLogDir(workDir string) (string, error) {
 }
 
 // NewPCB is the main entry point for generating a KiCad PCB project
-func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
+func NewPCB(ctx context.Context, taskID string, taskRequest map[string]interface{}) (string, error) {
+	startTime := time.Now()
+
 	// Extract layout and settings from request
 	layout, ok := taskRequest["layout"].(map[string]interface{})
 	if !ok {
@@ -426,6 +439,7 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 
 	// Run kbplacer to generate PCB and schematic
 	if err := RunKBPlacer(
+		ctx,
 		pcbFile,
 		layoutFile,
 		routeSwitchesWithDiodes,
@@ -457,6 +471,10 @@ func NewPCB(taskID string, taskRequest map[string]interface{}) (string, error) {
 	if err := GenerateRender(pcbFile, logPath); err != nil {
 		return "", err
 	}
+
+	// Report duration time
+	duration := time.Since(startTime)
+	log.Printf("Task %s completed in %v", taskID, duration)
 
 	return workDir, nil
 }
