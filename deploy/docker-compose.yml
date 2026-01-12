@@ -2,6 +2,7 @@ services:
 
   reverse-proxy:
     image: traefik:v2.11
+    restart: unless-stopped
     command:
       - "--api.dashboard=false"
       - "--metrics.prometheus=true"
@@ -21,9 +22,20 @@ services:
     volumes:
       - "./letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   prometheus:
     image: prom/prometheus:v3.8.1
+    restart: unless-stopped
     volumes:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
@@ -37,9 +49,14 @@ services:
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
       - "traefik.http.routers.prometheus.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   asynqmon:
     image: hibiken/asynqmon:latest
+    restart: unless-stopped
     expose:
       - "8080"
     environment:
@@ -58,9 +75,14 @@ services:
       - "traefik.http.routers.asynqmon.rule=Host(`asynqmon.${DOMAIN}`)"
       - "traefik.http.routers.asynqmon.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
 
   landing-page:
     image: landing-page:latest
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: deploy/Dockerfile
@@ -70,9 +92,14 @@ services:
       - "traefik.http.routers.landing.tls=true"
       - "traefik.http.routers.landing.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
       - "traefik.http.routers.landing.rule=Host(`${DOMAIN}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 32M
 
   kicad-server:
     image: admwscki/keyboard-tools-server:${TAG:-latest}
+    restart: unless-stopped
     env_file:
       - production.env
     depends_on:
@@ -81,29 +108,60 @@ services:
       - s3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.server.entrypoints=websecure"
-      - "traefik.http.routers.server.tls=true"
-      - "traefik.http.routers.server.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
-      - "traefik.http.routers.server.rule=Host(`kicad.${DOMAIN}`)"
+      - "traefik.http.routers.kicad-server-https.entrypoints=websecure"
+      - "traefik.http.routers.kicad-server-https.tls=true"
+      - "traefik.http.routers.kicad-server-https.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
+      - "traefik.http.routers.kicad-server-https.rule=Host(`kicad.${DOMAIN}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 100M
 
   kicad-worker:
     image: admwscki/keyboard-tools-kicad:${TAG:-latest}
+    restart: unless-stopped
     env_file:
       - production.env
     depends_on:
       - redis
       - s3
+    deploy:
+      resources:
+        limits:
+          memory: 400M
 
   redis:
     image: redis:6-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   s3:
     image: chrislusf/seaweedfs:4.02
+    restart: unless-stopped
     volumes:
       - s3_data:/data
     env_file:
       - production.env
     command: server -dir=/data -filer -filer.port=8888 -master.peers=none
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 
 volumes:
