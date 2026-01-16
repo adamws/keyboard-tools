@@ -20,11 +20,25 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Set SERVER_VERSION for build
+          environment:
+            GIT_TAG: << pipeline.git.tag >>
+          command: |
+            if [ -z "$GIT_TAG" ]; then
+              # Not a tag - use dev with short hash
+              echo "export SERVER_VERSION=dev-$(git rev-parse --short HEAD)" >> $BASH_ENV
+            else
+              # Tag build, cut 'v' prefix (only v prefixed tags should trigger this job)
+              echo "export SERVER_VERSION=$(echo $GIT_TAG | cut -c 2-)" >> $BASH_ENV
+            fi
+            source $BASH_ENV
+            echo "Building with VERSION: $VERSION"
+      - run:
           name: Build server docker image
           working_directory: kicad-backend
           command: |
             export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
-            docker build -t ${SERVER_IMAGE} -f docker/server.Dockerfile .
+            docker build --build-arg VERSION=${SERVER_VERSION} -t ${SERVER_IMAGE} -f docker/server.Dockerfile .
       - run:
           name: Build worker docker image
           working_directory: kicad-backend

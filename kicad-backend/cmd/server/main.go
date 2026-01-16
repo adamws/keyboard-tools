@@ -19,6 +19,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// Version information - set at build time using ldflags
+// Tagged releases: -X main.Version=12.0
+// Prereleases/dev: -X main.Version=dev-$(git rev-parse --short HEAD)
+var Version = "dev"
+
 // TaskAccessTracker tracks the last access time for each task to detect abandonment
 type TaskAccessTracker struct {
 	mu         sync.RWMutex
@@ -251,6 +256,7 @@ func (a *App) Serve() error {
 	kicadGetTaskRender := a.KicadGetTaskRender
 	kicadGetTaskResult := a.KicadGetTaskResult
 	kicadGetWorkers := a.KicadGetWorkers
+	getVersion := a.GetVersion
 
 	// Apply CORS middleware
 	if !a.production {
@@ -261,6 +267,7 @@ func (a *App) Serve() error {
 		kicadGetTaskRender = disableCors(kicadGetTaskRender)
 		kicadGetTaskResult = disableCors(kicadGetTaskResult)
 		kicadGetWorkers = disableCors(kicadGetWorkers)
+		getVersion = disableCors(getVersion)
 	} else {
 		// Production: restricted CORS with configured origin
 		kicadPostNewTask = enableCorsWithOrigin(kicadPostNewTask, a.corsAllowedOrigin)
@@ -269,6 +276,7 @@ func (a *App) Serve() error {
 		kicadGetTaskRender = enableCorsWithOrigin(kicadGetTaskRender, a.corsAllowedOrigin)
 		kicadGetTaskResult = enableCorsWithOrigin(kicadGetTaskResult, a.corsAllowedOrigin)
 		kicadGetWorkers = enableCorsWithOrigin(kicadGetWorkers, a.corsAllowedOrigin)
+		getVersion = enableCorsWithOrigin(getVersion, a.corsAllowedOrigin)
 	}
 
 	// Handle OPTIONS for all API routes first (CORS preflight)
@@ -299,6 +307,7 @@ func (a *App) Serve() error {
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/render/{name}", kicadGetTaskRender).Methods("GET")
 	kicadRouter.HandleFunc("/api/pcb/{task_id}/result", kicadGetTaskResult).Methods("GET")
 	kicadRouter.HandleFunc("/api/workers", kicadGetWorkers).Methods("GET")
+	kicadRouter.HandleFunc("/api/version", getVersion).Methods("GET")
 
 	// This server no longer serves frontend,
 	// it has been migrated to editor.keyboard-tools.xyz which is hosted on github pages.
@@ -364,6 +373,11 @@ type workerDetail struct {
 	ActiveTasks  int            `json:"active_tasks"`  // Currently processing
 	IdleCapacity int            `json:"idle_capacity"` // Available task slots
 	Queues       map[string]int `json:"queues"`
+}
+
+// versionResponse represents the response for /api/version endpoint
+type versionResponse struct {
+	Version string `json:"version"` // API version (tag or version+hash for prereleases)
 }
 
 func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
@@ -630,6 +644,15 @@ func (a *App) KicadGetWorkers(w http.ResponseWriter, r *http.Request) {
 		ActiveTasks:     activeTasks,
 		IdleCapacity:    totalCapacity - activeTasks,
 		Workers:         workerDetails,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (a *App) GetVersion(w http.ResponseWriter, r *http.Request) {
+	response := versionResponse{
+		Version: Version,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

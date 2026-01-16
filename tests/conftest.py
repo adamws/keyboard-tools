@@ -19,6 +19,11 @@ def is_circleci():
 
 
 @pytest.fixture(scope="session")
+def backend_host(request):
+    return request.config.getoption("--backend-test-host")
+
+
+@pytest.fixture(scope="session")
 def pcb_endpoint(request):
     value = request.config.getoption("--backend-test-host")
     return f"{value}/api/pcb"

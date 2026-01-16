@@ -1,6 +1,9 @@
 # Stage 1: Build Go binary
 FROM golang:1.25-alpine AS builder
 
+# Version argument for build-time injection
+ARG VERSION=dev
+
 WORKDIR /build
 
 # Copy go mod files
@@ -10,8 +13,10 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kicad-server ./cmd/server
+# Build static binary with version information
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags "-X main.Version=${VERSION}" \
+    -o kicad-server ./cmd/server
 
 # Stage 2: Runtime
 FROM alpine:latest

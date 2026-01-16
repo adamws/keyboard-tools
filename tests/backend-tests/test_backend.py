@@ -13,6 +13,28 @@ from threading import Thread
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def test_version_endpoint(backend_host):
+    """Test that /api/version endpoint returns 200 OK."""
+    r = requests.get(f"{backend_host}/api/version", verify=False)
+    assert r.status_code == 200, f"Expected 200 OK, got {r.status_code}"
+    logger.info(f"Version endpoint returned 200 OK")
+
+    # Verify Content-Type is JSON
+    content_type = r.headers.get("Content-Type", "")
+    assert "application/json" in content_type, f"Expected JSON content type, got {content_type}"
+
+    # Verify response can be parsed as JSON
+    response_json = r.json()
+    assert "version" in response_json, f"Expected 'version' field in response, got: {response_json}"
+
+    version = response_json["version"]
+    assert isinstance(version, str), f"Expected version to be string, got {type(version)}"
+    assert len(version) > 0, "Version string should not be empty"
+
+    logger.info(f"Version endpoint returned version: {version}")
+
+
 FOOTPRINTS_OPTIONS_MAP = {
     "MX": "Switch_Keyboard_Cherry_MX:SW_Cherry_MX_PCB_{:.2f}u",
     "Alps": "Switch_Keyboard_Alps_Matias:SW_Alps_Matias_{:.2f}u",
@@ -803,3 +825,4 @@ def test_double_cancellation(request, pcb_endpoint):
         logger.info(
             f"Task {task_id} was already active (409), skipping double cancellation test"
         )
+
