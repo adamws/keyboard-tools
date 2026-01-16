@@ -51,10 +51,10 @@ DEFAULT_SETTINGS = {
     "switchRotation": 0,
     "switchSide": "FRONT",
     # Diode configuration
-    "diodeRotation": 0,
+    "diodeRotation": 90,
     "diodeSide": "BACK",
-    "diodePositionX": 5.0,
-    "diodePositionY": -4.5,
+    "diodePositionX": 5.08,
+    "diodePositionY": 4.0,
 }
 
 
@@ -198,10 +198,10 @@ def test_correct_layout(
         "diodeFootprint": "Diode_SMD:D_SOD-123F",
         "switchRotation": 0,
         "switchSide": "FRONT",
-        "diodeRotation": 0,
+        "diodeRotation": 90,
         "diodeSide": "BACK",
-        "diodePositionX": 5.0,
-        "diodePositionY": -4.5,
+        "diodePositionX": 5.08,
+        "diodePositionY": 4.0,
     }
     layout_test_steps(tmpdir, pcb_endpoint, layout_file, settings)
 
@@ -366,18 +366,9 @@ def test_invalid_footprint_format_error_details(tmpdir, pcb_endpoint):
         layout_json = json.loads(f.read())
 
     # Provide invalid footprint format (missing colon separator)
-    invalid_settings = {
-        "controllerCircuit": "None",
-        "routing": "Full",
-        "switchFootprint": "InvalidFormatNoColon",  # Should be "lib:footprint"
-        "diodeFootprint": "Diode_SMD:D_SOD-123F",
-        "switchRotation": 0,
-        "switchSide": "FRONT",
-        "diodeRotation": 0,
-        "diodeSide": "BACK",
-        "diodePositionX": 5.0,
-        "diodePositionY": -4.5,
-    }
+    invalid_settings = dict(DEFAULT_SETTINGS)
+    invalid_settings["switchFootprint"] = "InvalidFormatNoColon"  # Should be "lib:footprint"
+
     request_data = {"layout": layout_json, "settings": invalid_settings}
 
     results = [None]
@@ -416,18 +407,9 @@ def test_missing_switch_rotation_field(tmpdir, pcb_endpoint):
         layout_json = json.loads(f.read())
 
     # Settings missing switchRotation field
-    incomplete_settings = {
-        "controllerCircuit": "None",
-        "routing": "Full",
-        "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
-        "diodeFootprint": "Diode_SMD:D_SOD-123F",
-        # Missing switchRotation
-        "switchSide": "FRONT",
-        "diodeRotation": 0,
-        "diodeSide": "BACK",
-        "diodePositionX": 5.0,
-        "diodePositionY": -4.5,
-    }
+    incomplete_settings = dict(DEFAULT_SETTINGS)
+    del incomplete_settings["switchRotation"]
+
     request_data = {"layout": layout_json, "settings": incomplete_settings}
 
     results = [None]
@@ -460,18 +442,9 @@ def test_invalid_switch_side_value(tmpdir, pcb_endpoint):
         layout_json = json.loads(f.read())
 
     # Settings with invalid switchSide value
-    invalid_settings = {
-        "controllerCircuit": "None",
-        "routing": "Full",
-        "switchFootprint": FOOTPRINTS_OPTIONS_MAP["MX"],
-        "diodeFootprint": "Diode_SMD:D_SOD-123F",
-        "switchRotation": 0,
-        "switchSide": "MIDDLE",  # Invalid value, should be FRONT or BACK
-        "diodeRotation": 0,
-        "diodeSide": "BACK",
-        "diodePositionX": 5.0,
-        "diodePositionY": -4.5,
-    }
+    invalid_settings = dict(DEFAULT_SETTINGS)
+    invalid_settings["switchSide"] = "MIDDLE"  # Invalid value, should be FRONT or BACK
+
     request_data = {"layout": layout_json, "settings": invalid_settings}
 
     results = [None]
@@ -600,10 +573,10 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
             "diodeFootprint": "Diode_SMD:D_SOD-123F",
             "switchRotation": 0,
             "switchSide": "FRONT",
-            "diodeRotation": 0,
+            "diodeRotation": 90,
             "diodeSide": "BACK",
-            "diodePositionX": 5.0,
-            "diodePositionY": -4.5,
+            "diodePositionX": 5.08,
+            "diodePositionY": 4.0,
         }
         request_data = {"layout": random.choice(layouts), "settings": settings}
         t = Thread(target=run_pcb_task, args=[pcb_endpoint, request_data, results, i])
