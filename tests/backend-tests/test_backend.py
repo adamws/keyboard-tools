@@ -148,6 +148,10 @@ def run_pcb_task(backend, request_data, results, index):
             # to many tasks enqueued, try again later
             logger.info(f"Task {index} not accepted, waiting for worker")
             time.sleep(10)
+        elif r.status_code == 429:
+            # rate limited by reverse proxy, try again later
+            logger.info(f"Task {index} rate limited, waiting before retry")
+            time.sleep(10)
         else:
             # something went wrong, unexpected error
             logger.error(r.content)
@@ -552,17 +556,14 @@ def test_multiple_concurrent_requests(request, pcb_endpoint):
     ]
     routing_options = ["Disabled", "Full"]
 
-    # simulate many requests at the same time, server let's 2 waiting tasks in queue (not running or prefetched)
-    # so '2 * cpu_count + 5' should cover all scenarios (when using prefetch_multipler = 1):
+    # simulate many requests at the same time to test queue management:
     # - task starts immediately
-    # - task is added to queue but waits for worker
-    # - task is not added to queue, need to re-try
-    # Doing +5 instead of +3 to have some margin due to race conditions,
-    # we do not care is some tasks slip through rate limiting mechanism in very unelikely scenario of many requests
-    # at same time
-    cpu_count = os.cpu_count()
-    logger.info(f"Running on test host with {cpu_count} cpus")
-    number_of_tasks = 2 * cpu_count + 5
+    # - task is added to queue but waits for worker (MAX_QUEUE_SIZE=5)
+    # - task is rejected by queue and needs to retry
+    # Hardcoded to 12 to stay under Traefik rate limits (burst=20) while testing
+    # queue overflow scenarios
+    number_of_tasks = 12
+    logger.info(f"Running test with {number_of_tasks} concurrent requests")
     threads = []
     results = [None] * number_of_tasks
     for i in range(number_of_tasks):

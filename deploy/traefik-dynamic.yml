@@ -1,0 +1,7 @@
+http:
+  middlewares:
+    rate-limit:
+      rateLimit:
+        average: 10        # 10 requests per second per IP
+        burst: 20          # Allow bursts up to 20
+        period: 1s

@@ -8,11 +8,15 @@ services:
       - "--metrics.prometheus=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls.certResolver=${TRAEFIK_CERT_RESOLVER}"
+      - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=30s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.writeTimeout=30s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.idleTimeout=180s"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
@@ -22,6 +26,7 @@ services:
     volumes:
       - "./letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro"
     deploy:
       resources:
         limits:
@@ -97,6 +102,7 @@ services:
       - "traefik.http.routers.kicad-server-https.tls=true"
       - "traefik.http.routers.kicad-server-https.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
       - "traefik.http.routers.kicad-server-https.rule=Host(`kicad.${DOMAIN}`)"
+      - "traefik.http.routers.kicad-server-https.middlewares=rate-limit@file"
     deploy:
       resources:
         limits:
