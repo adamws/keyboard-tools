@@ -82,23 +82,6 @@ services:
         limits:
           memory: 64M
 
-  landing-page:
-    image: landing-page:latest
-    restart: unless-stopped
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.landing.entrypoints=websecure"
-      - "traefik.http.routers.landing.tls=true"
-      - "traefik.http.routers.landing.tls.certresolver=${TRAEFIK_CERT_RESOLVER}"
-      - "traefik.http.routers.landing.rule=Host(`${DOMAIN}`)"
-    deploy:
-      resources:
-        limits:
-          memory: 32M
-
   kicad-server:
     image: admwscki/keyboard-tools-server:${TAG:-latest}
     restart: unless-stopped
