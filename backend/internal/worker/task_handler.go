@@ -7,8 +7,8 @@ import (
 	"log"
 	"runtime/debug"
 
-	"kicad-backend/internal/common"
-	"kicad-backend/internal/kicad"
+	"backend/internal/common"
+	"backend/internal/kicad"
 
 	"github.com/hibiken/asynq"
 )

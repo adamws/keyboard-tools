@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"kicad-backend/internal/common"
+	"backend/internal/common"
 )
 
 // Config holds configuration for the worker

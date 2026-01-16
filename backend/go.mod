@@ -1,4 +1,4 @@
-module kicad-backend
+module backend
 
 go 1.24
 

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"kicad-backend/internal/storage"
+	"backend/internal/storage"
 
 	"github.com/hibiken/asynq"
 )

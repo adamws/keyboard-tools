@@ -26,19 +26,19 @@ jobs:
             echo "Building with envs: $(cat $BASH_ENV)"
       - run:
           name: Build server docker image
-          working_directory: kicad-backend
+          working_directory: backend
           command: |
             export SERVER_IMAGE=admwscki/keyboard-tools-server:circleci
             docker build --build-arg VERSION=${SERVER_VERSION} -t ${SERVER_IMAGE} -f docker/server.Dockerfile .
       - run:
           name: Build worker docker image
-          working_directory: kicad-backend
+          working_directory: backend
           command: |
             export WORKER_IMAGE=admwscki/keyboard-tools-kicad:circleci
             docker build -t ${WORKER_IMAGE} -f docker/worker.Dockerfile .
       - run:
           name: Start docker compose for tests
-          working_directory: kicad-backend
+          working_directory: backend
           command: |
             docker compose up -d
       - run:
@@ -57,13 +57,13 @@ jobs:
             pytest --backend-test-host=http://localhost:8080
       - run:
           name: Get docker compose logs
-          working_directory: kicad-backend
+          working_directory: backend
           when: always
           command: |
             docker compose logs
       - run:
           name: Stop docker compose
-          working_directory: kicad-backend
+          working_directory: backend
           when: always
           command: |
             docker compose stop

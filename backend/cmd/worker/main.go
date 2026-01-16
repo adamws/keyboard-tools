@@ -1,7 +1,7 @@
 package main
 
 import (
-	"kicad-backend/internal/worker"
+	"backend/internal/worker"
 	"log"
 )
 

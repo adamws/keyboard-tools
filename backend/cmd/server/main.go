@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"kicad-backend/internal/common"
+	"backend/internal/common"
 
 	"github.com/gorilla/mux"
 	"github.com/hibiken/asynq"
