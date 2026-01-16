@@ -398,10 +398,14 @@ func (a *App) KicadPostNewTask(w http.ResponseWriter, r *http.Request) {
 		// Rate limiting: reject if too many pending/active tasks
 		// pretty low limit but this currently runs on 1 core low performance server,
 		// not expecting big concurrent traffic anyway:
-		if pendingCount > 2 {
+		maxQueueSize := getEnvInt("MAX_QUEUE_SIZE", 2)
+		if pendingCount > maxQueueSize {
 			sendErr(w, http.StatusServiceUnavailable, "Server overloaded, try again later")
 			return
 		}
+
+		// Limit request body to 10MB to prevent memory exhaustion
+		r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 
 		// Read request body as raw bytes
 		body, err := io.ReadAll(r.Body)
@@ -730,6 +734,17 @@ func (a *App) FilerProxy(objectName string, contentDisposition string) http.Hand
 func sendErr(w http.ResponseWriter, code int, message string) {
 	resp, _ := json.Marshal(map[string]string{"error": message})
 	http.Error(w, string(resp), code)
+}
+
+// getEnvInt gets an environment variable as an integer, with a default value
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		var intValue int
+		if _, err := fmt.Sscanf(value, "%d", &intValue); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
 }
 
 // Needed in order to disable CORS for local development
