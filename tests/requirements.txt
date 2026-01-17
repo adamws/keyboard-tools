@@ -1,4 +1,0 @@
-pytest==8.3.4
-# using current master because 4.1.1 has broken adding extras in teardown:
-git+https://github.com/pytest-dev/pytest-html@e7aca52e494d24fcb82fac928ddd61f64afeb405
-requests==2.32.5
