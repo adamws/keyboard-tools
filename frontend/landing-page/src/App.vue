@@ -8,7 +8,7 @@
         <p class="project-name">Layout Editor</p>
       </div>
     </a>
-    <a href="https://kicad.keyboard-tools.xyz" style="text-decoration: none; color: inherit;">
+    <a href="https://editor.keyboard-tools.xyz" style="text-decoration: none; color: inherit;">
       <div class="project">
         <p class="project-name">PCB Generator</p>
       </div>
