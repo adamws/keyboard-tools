@@ -13,6 +13,11 @@
         <p class="project-name">KiCad Plugin</p>
       </div>
     </a>
+    <a href="https://editor.keyboard-tools.xyz/docs">
+      <div class="project size-1u">
+        <p class="project-name">Docs</p>
+      </div>
+    </a>
   </div>
 </template>
 
